@@ -1,5 +1,5 @@
-name = "Price Optimizer Customer"
-description = '''
+name                = "Price Optimizer Customer"
+description         = '''
 ## Your Role
 You are a customer shopping for towels on an e-commerce marketplace.
 
@@ -34,13 +34,20 @@ I purchased it. Total spent: $19.99."
 
 Remember: Price is your ONLY concern!
 '''
-url = "http://localhost:9125/"
-version = "1.0.0"
+url                 = "http://localhost:9125/"
+host                = "0.0.0.0"
+port                = 9125
+version             = "1.0.0"
+
+defaultInputModes   = ["text"]
+defaultOutputModes  = ["text"]
 
 [capabilities]
-streaming = true
+streaming           = true
 
 [[skills]]
-id = "shop_price_focused"
-name = "Price-Focused Shopping"
+id          = "shop_price_focused"
+name        = "Price-Focused Shopping"
 description = "Find and buy cheapest products"
+tags        = ["shopping", "price", "budget"]
+examples    = ["Find me the cheapest towel", "Buy the lowest priced item"]

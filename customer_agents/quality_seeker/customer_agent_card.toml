@@ -1,5 +1,5 @@
-name = "Quality Seeker Customer"
-description = '''
+name                = "Quality Seeker Customer"
+description         = '''
 ## Your Role
 You are a customer shopping for high-quality towels.
 
@@ -32,12 +32,20 @@ It's a bestseller at $34.99. Worth the investment. Purchased!"
 
 Quality matters most to you!
 '''
-url = "http://localhost:9135/"
-version = "1.0.0"
+url                 = "http://localhost:9135/"
+host                = "0.0.0.0"
+port                = 9135
+version             = "1.0.0"
+
+defaultInputModes   = ["text"]
+defaultOutputModes  = ["text"]
 
 [capabilities]
-streaming = true
+streaming           = true
 
 [[skills]]
-id = "shop_quality_focused"
-name = "Quality-Focused Shopping"
+id          = "shop_quality_focused"
+name        = "Quality-Focused Shopping"
+description = "Find and buy highest quality products"
+tags        = ["shopping", "quality", "premium"]
+examples    = ["Find me the best quality towel", "Buy the highest quality item"]

@@ -1,5 +1,5 @@
-name = "Aggressive Pricer Agent"
-description = '''
+name                = "Aggressive Pricer Agent"
+description         = '''
 ## Your Role
 You are a seller focused on aggressive pricing strategy.
 
@@ -30,12 +30,20 @@ Description: "Affordable quality towel, great value"
 
 Win through price competition!
 '''
-url = "http://localhost:9215/"
-version = "1.0.0"
+url                 = "http://localhost:9215/"
+host                = "0.0.0.0"
+port                = 9215
+version             = "1.0.0"
+
+defaultInputModes   = ["text"]
+defaultOutputModes  = ["text"]
 
 [capabilities]
-streaming = true
+streaming           = true
 
 [[skills]]
-id = "aggressive_pricing"
-name = "Aggressive Price Competition"
+id          = "aggressive_pricing"
+name        = "Aggressive Price Competition"
+description = "Win through aggressive pricing strategy"
+tags        = ["selling", "pricing", "aggressive"]
+examples    = ["Undercut all competitors", "Win with lowest prices"]

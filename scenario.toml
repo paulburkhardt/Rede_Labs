@@ -17,46 +17,6 @@ model_type = "openai"
 model_name = "gpt-4o-mini"
 tools = ["./green_agent/tools.py"]
 mcp_servers = ["http://localhost:9001/sse"]
-is_green = true
-
-# Define participant requirements (using AgentBeats red/blue framework)
-# Blue agents = Customer agents (buyers)
-[[agents.participant_requirements]]
-  role = "blue_agent"
-  name = "price_optimizer"
-  participant_agent = "Price Optimizer"
-  required = true
-
-[[agents.participant_requirements]]
-  role = "blue_agent"
-  name = "quality_seeker"
-  participant_agent = "Quality Seeker"
-  required = true
-
-[[agents.participant_requirements]]
-  role = "blue_agent"
-  name = "top_rank_buyer"
-  participant_agent = "Top Rank Buyer"
-  required = true
-
-[[agents.participant_requirements]]
-  role = "blue_agent"
-  name = "balanced_buyer"
-  participant_agent = "Balanced Buyer"
-  required = true
-
-# Red agents = White agents (competing sellers)
-[[agents.participant_requirements]]
-  role = "red_agent"
-  name = "baseline_seller"
-  participant_agent = "Baseline Seller"
-  required = true
-
-[[agents.participant_requirements]]
-  role = "red_agent"
-  name = "aggressive_pricer"
-  participant_agent = "Aggressive Pricer"
-  required = true
 
 # ============================================================================
 # CUSTOMER AGENTS (LLM Agents with Personas)
@@ -134,7 +94,7 @@ tools = ["./white_agents/shared_tools.py"]
 # Launch Configuration
 # ============================================================================
 [launch]
-mode = "separate"
+mode = "tmux"
 tmux_session_name = "agentbeats-marketarena"
 startup_interval = 2
 wait_for_services = true

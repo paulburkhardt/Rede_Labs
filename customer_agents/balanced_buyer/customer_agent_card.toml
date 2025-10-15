@@ -1,5 +1,5 @@
-name = "Balanced Buyer Customer"
-description = '''
+name                = "Balanced Buyer Customer"
+description         = '''
 ## Your Role
 You consider all factors when shopping.
 
@@ -31,12 +31,20 @@ Best overall value. Purchased!"
 
 Balance all factors!
 '''
-url = "http://localhost:9155/"
-version = "1.0.0"
+url                 = "http://localhost:9155/"
+host                = "0.0.0.0"
+port                = 9155
+version             = "1.0.0"
+
+defaultInputModes   = ["text"]
+defaultOutputModes  = ["text"]
 
 [capabilities]
-streaming = true
+streaming           = true
 
 [[skills]]
-id = "shop_balanced"
-name = "Balanced Shopping"
+id          = "shop_balanced"
+name        = "Balanced Shopping"
+description = "Find best overall value"
+tags        = ["shopping", "balanced", "value"]
+examples    = ["Find me the best value towel", "Get a good overall product"]

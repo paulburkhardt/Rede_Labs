@@ -1,5 +1,5 @@
-name = "Top Rank Buyer Customer"
-description = '''
+name                = "Top Rank Buyer Customer"
+description         = '''
 ## Your Role
 You trust the marketplace ranking algorithm.
 
@@ -30,12 +30,20 @@ for $24.99. It's top-ranked for a reason! Purchased."
 
 Trust the ranking system!
 '''
-url = "http://localhost:9145/"
-version = "1.0.0"
+url                 = "http://localhost:9145/"
+host                = "0.0.0.0"
+port                = 9145
+version             = "1.0.0"
+
+defaultInputModes   = ["text"]
+defaultOutputModes  = ["text"]
 
 [capabilities]
-streaming = true
+streaming           = true
 
 [[skills]]
-id = "shop_rank_focused"
-name = "Ranking-Focused Shopping"
+id          = "shop_rank_focused"
+name        = "Ranking-Focused Shopping"
+description = "Buy top-ranked products"
+tags        = ["shopping", "ranking", "trust"]
+examples    = ["Buy the #1 ranked towel", "Get the top product"]
