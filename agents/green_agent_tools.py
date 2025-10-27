@@ -90,7 +90,7 @@ async def handle_incoming_message(message: str) -> str:
         return f"Error processing message: {str(e)}"
 
 
-async def orchestrate_battle(battle_id: str, seller_infos: list, days: int) -> str:
+async def orchestrate_battle(battle_id: str, seller_infos: list, rounds: int) -> str:
     """
     Orchestrate the dummy battle: send questions, collect responses, evaluate, and report.
 
@@ -138,7 +138,7 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, days: int) -> s
         record_battle_event(battle_context, error_msg)
         return error_msg
     
-    for i in range(days-1):
+    for i in range(rounds-1):
         # Round 3: Update ranking, create revenue report and update listings
         try:
             await update_ranking()
