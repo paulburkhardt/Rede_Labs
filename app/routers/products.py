@@ -10,7 +10,7 @@ from app.schemas.product import (
     ProductDetail
 )
 from app.models.product import Product
-from app.models.organization import Seller
+from app.models.seller import Seller
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -19,20 +19,20 @@ router = APIRouter(prefix="/product", tags=["products"])
 def create_product(
     id: str,
     product: ProductCreate,
-    authorization: str = Header(..., description="Bearer token for organization"),
+    authorization: str = Header(..., description="Bearer token for seller"),
     db: Session = Depends(get_db)
 ):
     """
     Create a new product.
     White agents use this endpoint to create their product listings.
-    Requires Authorization header with organization token.
+    Requires Authorization header with seller token.
     """
     # Extract token from Authorization header
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
-    
-    # Verify organization exists and token is valid
-    organization = db.query(Seller).filter(Seller.auth_token == token).first()
-    if not organization:
+
+    # Verify seller exists and token is valid
+    seller = db.query(Seller).filter(Seller.auth_token == token).first()
+    if not seller:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
     # Check if product with this ID already exists
@@ -49,7 +49,7 @@ def create_product(
         price_in_cent=product.price,
         image_url=product.image.url,
         image_alternative_text=product.image.alternativText,
-        organization_id=organization.id
+        seller_id=seller.id
     )
     db.add(db_product)
     db.commit()
@@ -62,20 +62,20 @@ def create_product(
 def update_product(
     id: str,
     product: ProductUpdate,
-    authorization: str = Header(..., description="Bearer token for organization"),
+    authorization: str = Header(..., description="Bearer token for seller"),
     db: Session = Depends(get_db)
 ):
     """
     Update an existing product.
     White agents use this endpoint to update their own product listings.
-    Requires Authorization header with organization token.
+    Requires Authorization header with seller token.
     """
     # Extract token from Authorization header
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
     
-    # Verify organization exists and token is valid
-    organization = db.query(Seller).filter(Seller.auth_token == token).first()
-    if not organization:
+    # Verify seller exists and token is valid
+    seller = db.query(Seller).filter(Seller.auth_token == token).first()
+    if not seller:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
     # Get the product
@@ -83,8 +83,8 @@ def update_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Verify the product belongs to this organization
-    if db_product.organization_id != organization.id:
+    # Verify the product belongs to this seller
+    if db_product.seller_id != seller.id:
         raise HTTPException(status_code=403, detail="You can only update your own products")
     
     # Update fields if provided
@@ -114,18 +114,21 @@ def get_product(
     """
     Get detailed information about a specific product.
     """
-    # Get the product with organization info
+    # Get the product with seller info
     db_product = db.query(Product).filter(Product.id == id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get seller information
+    seller = db.query(Seller).filter(Seller.id == db_product.seller_id).first()
     
     # Format response
     return ProductDetail(
         id=db_product.id,
         name=db_product.name,
         company={
-            "id": db_product.organization.id,
-            "name": db_product.organization.name
+            "id": seller.id,
+            "name": ""  # Seller no longer has name attribute
         },
         priceInCent=db_product.price_in_cent,
         currency=db_product.currency,

@@ -5,7 +5,7 @@ import pytest
 class TestProductCreation:
     """Test product creation endpoint"""
     
-    def test_create_product_success(self, client, sample_organization):
+    def test_create_product_success(self, client, sample_seller):
         """Test successful product creation with authentication"""
         product_data = {
             "name": "Premium Towel",
@@ -21,7 +21,7 @@ class TestProductCreation:
         response = client.post(
             "/product/prod-123",
             json=product_data,
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         assert response.status_code == 200
@@ -71,7 +71,7 @@ class TestProductCreation:
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid authentication token"
     
-    def test_create_duplicate_product_id(self, client, sample_organization):
+    def test_create_duplicate_product_id(self, client, sample_seller):
         """Test that creating a product with duplicate ID fails"""
         product_data = {
             "name": "Product One",
@@ -88,7 +88,7 @@ class TestProductCreation:
         response1 = client.post(
             "/product/duplicate-id",
             json=product_data,
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         assert response1.status_code == 200
         
@@ -97,7 +97,7 @@ class TestProductCreation:
         response2 = client.post(
             "/product/duplicate-id",
             json=product_data,
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         assert response2.status_code == 400
@@ -117,7 +117,7 @@ class TestProductUpdate:
         response = client.patch(
             f"/product/{sample_product['id']}",
             json=update_data,
-            headers={"Authorization": f"Bearer {sample_product['organization']['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
         )
         
         assert response.status_code == 200
@@ -137,7 +137,7 @@ class TestProductUpdate:
         response = client.patch(
             f"/product/{sample_product['id']}",
             json=update_data,
-            headers={"Authorization": f"Bearer {sample_product['organization']['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
         )
         
         assert response.status_code == 200
@@ -157,11 +157,11 @@ class TestProductUpdate:
         
         assert response.status_code == 422  # Missing required header
     
-    def test_update_product_with_wrong_org_token(self, client, sample_product, sample_organization):
-        """Test that organization cannot update another organization's product"""
-        # Create a second organization
+    def test_update_product_with_wrong_org_token(self, client, sample_product, sample_seller):
+        """Test that seller cannot update another seller's product"""
+        # Create a second seller
         other_org = client.post(
-            "/createOrganization",
+            "/createSeller",
             json={"name": "Other Corp"}
         ).json()
         
@@ -175,12 +175,12 @@ class TestProductUpdate:
         assert response.status_code == 403
         assert "only update your own products" in response.json()["detail"]
     
-    def test_update_nonexistent_product(self, client, sample_organization):
+    def test_update_nonexistent_product(self, client, sample_seller):
         """Test updating a product that doesn't exist"""
         response = client.patch(
             "/product/nonexistent-id",
             json={"price": 999},
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         assert response.status_code == 404
@@ -205,7 +205,7 @@ class TestProductRetrieval:
         assert data["priceInCent"] == sample_product["price"]
         assert data["currency"] == "USD"
         assert "company" in data
-        assert data["company"]["name"] == sample_product["organization"]["name"]
+        assert data["company"]["name"] == ""  # Sellers no longer have names
         assert "image" in data
     
     def test_get_nonexistent_product(self, client):
@@ -215,8 +215,8 @@ class TestProductRetrieval:
         assert response.status_code == 404
         assert response.json()["detail"] == "Product not found"
     
-    def test_get_product_includes_organization_info(self, client, sample_product):
-        """Test that product details include organization information"""
+    def test_get_product_includes_seller_info(self, client, sample_product):
+        """Test that product details include seller information"""
         response = client.get(f"/product/{sample_product['id']}")
         
         assert response.status_code == 200
@@ -225,5 +225,5 @@ class TestProductRetrieval:
         assert "company" in data
         assert "id" in data["company"]
         assert "name" in data["company"]
-        assert data["company"]["id"] == sample_product["organization"]["id"]
-        assert data["company"]["name"] == sample_product["organization"]["name"]
+        assert data["company"]["id"] == sample_product["seller"]["id"]
+        assert data["company"]["name"] == ""  # Sellers no longer have names

@@ -9,7 +9,7 @@ class ImageSchema(BaseModel):
 
 class CompanySchema(BaseModel):
     id: str
-    name: str
+    name: str = ""
 
 
 class ProductCreate(BaseModel):

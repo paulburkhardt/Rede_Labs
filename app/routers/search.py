@@ -5,6 +5,7 @@ from typing import List
 from app.database import get_db
 from app.schemas.product import ProductSearchResult
 from app.models.product import Product
+from app.models.seller import Seller
 
 router = APIRouter(prefix="", tags=["search"])
 
@@ -30,12 +31,14 @@ def search_products(
     # Format results
     results = []
     for product in products:
+        # Get seller information for each product
+        seller = db.query(Seller).filter(Seller.id == product.seller_id).first()
         results.append(ProductSearchResult(
             id=product.id,
             name=product.name,
             company={
-                "id": product.organization.id,
-                "name": product.organization.name
+                "id": seller.id,
+                "name": ""  # Seller no longer has name attribute
             },
             priceInCent=product.price_in_cent,
             currency=product.currency,

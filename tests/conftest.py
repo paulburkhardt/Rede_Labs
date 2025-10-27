@@ -47,11 +47,11 @@ def client(db_session):
 
 
 @pytest.fixture
-def sample_organization(client):
-    """Create a sample organization and return its data"""
+def sample_seller(client):
+    """Create a sample seller and return its data"""
     response = client.post(
-        "/createOrganization",
-        json={"name": "Test Corp"}
+        "/createSeller",
+        json={"name": "Test Seller"}
     )
     assert response.status_code == 200
     return response.json()
@@ -69,7 +69,7 @@ def sample_buyer(client):
 
 
 @pytest.fixture
-def sample_product(client, sample_organization):
+def sample_product(client, sample_seller):
     """Create a sample product and return its data"""
     product_data = {
         "name": "Test Product",
@@ -85,11 +85,11 @@ def sample_product(client, sample_organization):
     response = client.post(
         "/product/test-product-1",
         json=product_data,
-        headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+        headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
     )
     assert response.status_code == 200
     return {
         "id": "test-product-1",
-        "organization": sample_organization,
+        "seller": sample_seller,
         **product_data
     }

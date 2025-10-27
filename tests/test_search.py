@@ -5,7 +5,7 @@ import pytest
 class TestProductSearch:
     """Test product search functionality"""
     
-    def test_search_finds_matching_products(self, client, sample_organization):
+    def test_search_finds_matching_products(self, client, sample_seller):
         """Test that search finds products by name"""
         # Create multiple products
         products = [
@@ -27,7 +27,7 @@ class TestProductSearch:
                         "alternativText": "Test image"
                     }
                 },
-                headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+                headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
         
         # Search for "towel"
@@ -40,7 +40,7 @@ class TestProductSearch:
         assert len(results) == 2
         assert all("towel" in r["name"].lower() for r in results)
     
-    def test_search_case_insensitive(self, client, sample_organization):
+    def test_search_case_insensitive(self, client, sample_seller):
         """Test that search is case-insensitive"""
         # Create product
         client.post(
@@ -55,7 +55,7 @@ class TestProductSearch:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         # Search with lowercase
@@ -65,7 +65,7 @@ class TestProductSearch:
         assert len(results) == 1
         assert "PREMIUM" in results[0]["name"]
     
-    def test_search_partial_match(self, client, sample_organization):
+    def test_search_partial_match(self, client, sample_seller):
         """Test that search finds partial matches"""
         client.post(
             "/product/test-prod",
@@ -79,7 +79,7 @@ class TestProductSearch:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         # Search for partial word
@@ -110,9 +110,9 @@ class TestProductSearch:
         assert "company" in result
         assert "id" in result["company"]
         assert "name" in result["company"]
-        assert result["company"]["name"] == sample_product["organization"]["name"]
+        assert result["company"]["name"] == ""  # Sellers no longer have names
     
-    def test_search_ranking_bestsellers_first(self, client, sample_organization):
+    def test_search_ranking_bestsellers_first(self, client, sample_seller):
         """Test that bestsellers appear first in search results"""
         # Create regular product
         client.post(
@@ -127,7 +127,7 @@ class TestProductSearch:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         # Manually set a product as bestseller (would need to update the product)
@@ -144,7 +144,7 @@ class TestProductSearch:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         response = client.get("/search?q=towel")
@@ -177,5 +177,4 @@ class TestProductSearch:
         
         # Verify nested structures
         assert "id" in result["company"]
-        assert "name" in result["company"]
         assert "url" in result["image"]

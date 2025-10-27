@@ -109,15 +109,15 @@ class TestPurchaseCreation:
         # Verify different purchase IDs
         assert response1.json()["id"] != response2.json()["id"]
     
-    def test_organization_token_cannot_make_purchase(self, client, sample_product, sample_organization):
-        """Test that organization token cannot be used to make purchases"""
+    def test_seller_token_cannot_make_purchase(self, client, sample_product, sample_seller):
+        """Test that seller token cannot be used to make purchases"""
         response = client.post(
             f"/buy/{sample_product['id']}",
             json={"productId": sample_product['id']},
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
-        # Should fail because organization token is not a buyer token
+        # Should fail because seller token is not a buyer token
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid authentication token"
 
@@ -127,9 +127,9 @@ class TestPurchaseWorkflow:
     
     def test_complete_marketplace_workflow(self, client):
         """Test a complete workflow: create org, product, buyer, and purchase"""
-        # Step 1: Create organization
+        # Step 1: Create seller
         org = client.post(
-            "/createOrganization",
+            "/createSeller",
             json={"name": "Towel Emporium"}
         ).json()
         
@@ -192,6 +192,6 @@ class TestPurchaseWorkflow:
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
-        # Should fail because buyer token is not an organization token
+        # Should fail because buyer token is not an seller token
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid authentication token"

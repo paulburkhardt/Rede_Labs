@@ -5,7 +5,7 @@ import pytest
 class TestAuthenticationSecurity:
     """Test authentication and authorization security"""
     
-    def test_bearer_token_with_and_without_prefix(self, client, sample_organization):
+    def test_bearer_token_with_and_without_prefix(self, client, sample_seller):
         """Test that both 'Bearer token' and 'token' formats work"""
         product_data = {
             "name": "Test Product",
@@ -22,7 +22,7 @@ class TestAuthenticationSecurity:
         response1 = client.post(
             "/product/test-1",
             json=product_data,
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         assert response1.status_code == 200
         
@@ -30,24 +30,24 @@ class TestAuthenticationSecurity:
         response2 = client.post(
             "/product/test-2",
             json=product_data,
-            headers={"Authorization": sample_organization['auth_token']}
+            headers={"Authorization": sample_seller['auth_token']}
         )
         assert response2.status_code == 200
     
     def test_token_isolation_between_orgs(self, client):
-        """Test that organizations cannot access each other's resources"""
-        # Create two organizations
-        org1 = client.post(
-            "/createOrganization",
+        """Test that sellers cannot access each other's resources"""
+        # Create two sellers
+        seller1 = client.post(
+            "/createSeller",
             json={"name": "Org 1"}
         ).json()
         
-        org2 = client.post(
-            "/createOrganization",
+        seller2 = client.post(
+            "/createSeller",
             json={"name": "Org 2"}
         ).json()
         
-        # Org 1 creates a product
+        # Seller 1 creates a product
         client.post(
             "/product/org1-product",
             json={
@@ -60,14 +60,14 @@ class TestAuthenticationSecurity:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {org1['auth_token']}"}
+            headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
         
         # Org 2 tries to update Org 1's product
         response = client.patch(
             "/product/org1-product",
             json={"price": 999},
-            headers={"Authorization": f"Bearer {org2['auth_token']}"}
+            headers={"Authorization": f"Bearer {seller2['auth_token']}"}
         )
         
         assert response.status_code == 403
@@ -102,19 +102,19 @@ class TestAuthenticationSecurity:
         assert response1.json()["id"] != response2.json()["id"]
 
 
-class TestMultipleOrganizationsAndProducts:
-    """Test scenarios with multiple organizations and products"""
+class TestMultipleSellersAndProducts:
+    """Test scenarios with multiple sellers and products"""
     
     def test_multiple_orgs_with_similar_products(self, client):
-        """Test that multiple organizations can have products with similar names"""
-        # Create two organizations
+        """Test that multiple sellers can have products with similar names"""
+        # Create two sellers
         org1 = client.post(
-            "/createOrganization",
+            "/createSeller",
             json={"name": "Brand A"}
         ).json()
         
         org2 = client.post(
-            "/createOrganization",
+            "/createSeller",
             json={"name": "Brand B"}
         ).json()
         
@@ -148,11 +148,11 @@ class TestMultipleOrganizationsAndProducts:
         
         assert len(results) == 2
         companies = [r["company"]["name"] for r in results]
-        assert "Brand A" in companies
-        assert "Brand B" in companies
+        # Sellers no longer have names, so all should be empty strings
+        assert all(name == "" for name in companies)
     
-    def test_organization_can_manage_multiple_products(self, client, sample_organization):
-        """Test that one organization can create and manage multiple products"""
+    def test_seller_can_manage_multiple_products(self, client, sample_seller):
+        """Test that one seller can create and manage multiple products"""
         products = []
         
         # Create 5 products
@@ -169,23 +169,23 @@ class TestMultipleOrganizationsAndProducts:
                         "alternativText": f"Image {i}"
                     }
                 },
-                headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+                headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
             assert response.status_code == 200
             products.append(f"prod-{i}")
         
-        # Verify all products exist and belong to same organization
+        # Verify all products exist and belong to same seller
         for prod_id in products:
             response = client.get(f"/product/{prod_id}")
             assert response.status_code == 200
             product = response.json()
-            assert product["company"]["id"] == sample_organization["id"]
+            assert product["company"]["id"] == sample_seller["id"]
         
         # Update one of them
         response = client.patch(
             "/product/prod-2",
             json={"price": 5999},
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         assert response.status_code == 200
 
@@ -196,13 +196,13 @@ class TestDataConsistency:
     def test_product_data_consistency_after_update(self, client, sample_product):
         """Test that product data remains consistent after updates"""
         original_name = sample_product["name"]
-        original_org = sample_product["organization"]["id"]
+        original_org = sample_product["seller"]["id"]
         
         # Update only the price
         client.patch(
             f"/product/{sample_product['id']}",
             json={"price": 9999},
-            headers={"Authorization": f"Bearer {sample_product['organization']['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
         )
         
         # Verify other fields unchanged
@@ -220,7 +220,7 @@ class TestDataConsistency:
         client.patch(
             f"/product/{sample_product['id']}",
             json={"name": new_name},
-            headers={"Authorization": f"Bearer {sample_product['organization']['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
         )
         
         # Search with new name
@@ -247,13 +247,13 @@ class TestDataConsistency:
         
         # Should be identical
         assert detail_company["id"] == search_company["id"]
-        assert detail_company["name"] == search_company["name"]
+        assert detail_company["name"] == search_company["name"] == ""  # Sellers no longer have names
 
 
 class TestEdgeCases:
     """Test edge cases and boundary conditions"""
     
-    def test_product_with_zero_price(self, client, sample_organization):
+    def test_product_with_zero_price(self, client, sample_seller):
         """Test creating a product with zero price"""
         response = client.post(
             "/product/free-product",
@@ -267,7 +267,7 @@ class TestEdgeCases:
                     "alternativText": "Free"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         assert response.status_code == 200
@@ -276,7 +276,7 @@ class TestEdgeCases:
         product = client.get("/product/free-product").json()
         assert product["priceInCent"] == 0
     
-    def test_product_with_very_long_description(self, client, sample_organization):
+    def test_product_with_very_long_description(self, client, sample_seller):
         """Test creating a product with very long descriptions"""
         long_text = "A" * 10000
         
@@ -292,12 +292,12 @@ class TestEdgeCases:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         assert response.status_code == 200
     
-    def test_search_with_special_characters(self, client, sample_organization):
+    def test_search_with_special_characters(self, client, sample_seller):
         """Test search with special characters"""
         # Create product with special characters
         client.post(
@@ -312,7 +312,7 @@ class TestEdgeCases:
                     "alternativText": "Test"
                 }
             },
-            headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         # Search should still work

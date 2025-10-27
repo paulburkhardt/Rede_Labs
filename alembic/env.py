@@ -7,7 +7,7 @@ from alembic import context
 
 # Import your models here
 from app.database import Base
-from app.models.organization import Organization
+from app.models.seller import Seller
 from app.models.product import Product
 from app.models.purchase import Purchase
 from app.models.buyer import Buyer

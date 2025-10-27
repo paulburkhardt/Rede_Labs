@@ -17,9 +17,9 @@ class Product(Base):
     bestseller = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
     image_alternative_text = Column(String, nullable=True)
-    
-    # Foreign key to organization
-    organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    
+
+    # Foreign key to seller
+    seller_id = Column(String, ForeignKey("sellers.id"), nullable=False)
+
     # Relationship
-    organization = relationship("Organization", back_populates="products")
+    seller = relationship("Seller", back_populates="products")

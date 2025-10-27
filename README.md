@@ -1,6 +1,6 @@
 # Marketplace API
 
-A FastAPI-based marketplace backend with PostgreSQL database for managing organizations, products, and purchases.
+A FastAPI-based marketplace backend with PostgreSQL database for managing sellers, products, and purchases.
 
 ## Project Structure
 
@@ -13,17 +13,17 @@ Rede_Labs/
 │   ├── database.py          # Database connection and session
 │   ├── models/              # SQLAlchemy models
 │   │   ├── __init__.py
-│   │   ├── organization.py
+│   │   ├── seller.py
 │   │   ├── product.py
 │   │   └── purchase.py
 │   ├── schemas/             # Pydantic schemas for request/response
 │   │   ├── __init__.py
-│   │   ├── organization.py
+│   │   ├── seller.py
 │   │   ├── product.py
 │   │   └── purchase.py
 │   └── routers/             # API route handlers
 │       ├── __init__.py
-│       ├── organizations.py
+│       ├── sellers.py
 │       ├── products.py
 │       ├── search.py
 │       └── purchases.py
@@ -106,9 +106,9 @@ The API will be available at:
 
 ## API Endpoints
 
-### Organizations
+### Sellers
 
-- **POST /createOrganization** - Create a new organization
+- **POST /createSeller** - Create a new seller
   ```json
   {
     "name": "string"
@@ -131,9 +131,8 @@ The API will be available at:
 
 ## Database Schema
 
-### Organizations
+### Sellers
 - `id` (String, Primary Key)
-- `name` (String)
 
 ### Products
 - `id` (String, Primary Key)
@@ -145,7 +144,7 @@ The API will be available at:
 - `bestseller` (Boolean)
 - `image_url` (String)
 - `image_alternative_text` (String)
-- `organization_id` (Foreign Key → Organizations)
+- `seller_id` (Foreign Key → Sellers)
 
 ### Purchases
 - `id` (String, Primary Key)
@@ -206,7 +205,7 @@ uv run pytest tests/test_products.py -v
 ### Test Coverage
 
 **48 integration tests** covering:
-- ✅ Organization creation and authentication
+- ✅ Seller creation and authentication
 - ✅ Buyer creation and authentication
 - ✅ Product CRUD operations with authorization
 - ✅ Search functionality (case-insensitive, partial matching, ranking)
@@ -227,7 +226,7 @@ See `IMPLEMENTATION_COMPLETE.md` for detailed test documentation.
 
 ✅ **All endpoints fully implemented with authentication!**
 
-- **POST /createOrganization** - Creates organization with auth token
+- **POST /createSeller** - Creates seller with auth token
 - **POST /createBuyer** - Creates buyer with auth token
 - **POST /product/{id}** - Create product (requires org auth)
 - **PATCH /product/{id}** - Update product (requires org auth, ownership check)
@@ -237,11 +236,11 @@ See `IMPLEMENTATION_COMPLETE.md` for detailed test documentation.
 
 ### Authentication
 
-- Organizations receive an `auth_token` upon creation
+- Sellers receive an `auth_token` upon creation
 - Buyers receive an `auth_token` upon creation
-- Product create/update requires organization token in `Authorization` header
+- Product create/update requires seller token in `Authorization` header
 - Purchases require buyer token in `Authorization` header
-- Organizations can only update their own products
+- Sellers can only update their own products
 - Tokens are securely generated using `secrets.token_urlsafe(32)`
 
 ## Tech Stack

@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import organizations, products, search, purchases, buyers
+from app.routers import sellers, products, search, purchases, buyers
 from app.config import settings
 
 app = FastAPI(
     title="Marketplace API",
-    description="API for managing marketplace organizations, products, and purchases",
+    description="API for managing marketplace sellers, products, and purchases",
     version="0.1.0"
 )
 
@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(organizations.router)
+app.include_router(sellers.router)
 app.include_router(buyers.router)
 app.include_router(products.router)
 app.include_router(search.router)
