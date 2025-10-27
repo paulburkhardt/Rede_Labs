@@ -1,0 +1,95 @@
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.main import app
+from app.database import Base, get_db
+from app.config import settings
+
+# Create a test database URL (using same DB but will clear it)
+TEST_DATABASE_URL = settings.database_url
+
+engine = create_engine(TEST_DATABASE_URL)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def override_get_db():
+    """Override database dependency for testing"""
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="function")
+def db_session():
+    """Create a fresh database session for each test"""
+    # Drop all tables and recreate them
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="function")
+def client(db_session):
+    """Create a test client with fresh database"""
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def sample_organization(client):
+    """Create a sample organization and return its data"""
+    response = client.post(
+        "/createOrganization",
+        json={"name": "Test Corp"}
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+@pytest.fixture
+def sample_buyer(client):
+    """Create a sample buyer and return its data"""
+    response = client.post(
+        "/createBuyer",
+        json={"name": "Test Buyer"}
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+@pytest.fixture
+def sample_product(client, sample_organization):
+    """Create a sample product and return its data"""
+    product_data = {
+        "name": "Test Product",
+        "shortDescription": "A test product",
+        "longDescription": "This is a detailed description of the test product",
+        "price": 1999,
+        "image": {
+            "url": "https://example.com/image.jpg",
+            "alternativText": "Test product image"
+        }
+    }
+    
+    response = client.post(
+        "/product/test-product-1",
+        json=product_data,
+        headers={"Authorization": f"Bearer {sample_organization['auth_token']}"}
+    )
+    assert response.status_code == 200
+    return {
+        "id": "test-product-1",
+        "organization": sample_organization,
+        **product_data
+    }
