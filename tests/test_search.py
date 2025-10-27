@@ -106,11 +106,9 @@ class TestProductSearch:
         assert len(results) > 0
         result = results[0]
         
-        # Verify company info is included
-        assert "company" in result
-        assert "id" in result["company"]
-        assert "name" in result["company"]
-        assert result["company"]["name"] == ""  # Sellers no longer have names
+        # Verify seller info is included
+        assert "seller_id" in result
+        assert result["seller_id"] == sample_product["seller"]["id"]
     
     def test_search_ranking_bestsellers_first(self, client, sample_seller):
         """Test that bestsellers appear first in search results"""
@@ -169,12 +167,11 @@ class TestProductSearch:
         
         # Verify all required fields
         required_fields = [
-            "id", "name", "company", "priceInCent", 
+            "id", "name", "seller_id", "priceInCent", 
             "currency", "bestseller", "shortDescription", "image"
         ]
         for field in required_fields:
             assert field in result
         
         # Verify nested structures
-        assert "id" in result["company"]
         assert "url" in result["image"]

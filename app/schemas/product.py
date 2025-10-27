@@ -31,7 +31,7 @@ class ProductUpdate(BaseModel):
 class ProductSearchResult(BaseModel):
     id: str
     name: str
-    company: CompanySchema
+    seller_id: str
     priceInCent: int
     currency: str
     bestseller: bool
@@ -45,7 +45,7 @@ class ProductSearchResult(BaseModel):
 class ProductDetail(BaseModel):
     id: str
     name: str
-    company: CompanySchema
+    seller_id: str
     priceInCent: int
     currency: str
     bestseller: bool

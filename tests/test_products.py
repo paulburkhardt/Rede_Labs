@@ -162,7 +162,6 @@ class TestProductUpdate:
         # Create a second seller
         other_org = client.post(
             "/createSeller",
-            json={"name": "Other Corp"}
         ).json()
         
         # Try to update first org's product with second org's token
@@ -204,8 +203,8 @@ class TestProductRetrieval:
         assert data["longDescription"] == sample_product["longDescription"]
         assert data["priceInCent"] == sample_product["price"]
         assert data["currency"] == "USD"
-        assert "company" in data
-        assert data["company"]["name"] == ""  # Sellers no longer have names
+        assert "seller_id" in data
+        assert data["seller_id"] == sample_product["seller"]["id"]
         assert "image" in data
     
     def test_get_nonexistent_product(self, client):
@@ -222,8 +221,5 @@ class TestProductRetrieval:
         assert response.status_code == 200
         data = response.json()
         
-        assert "company" in data
-        assert "id" in data["company"]
-        assert "name" in data["company"]
-        assert data["company"]["id"] == sample_product["seller"]["id"]
-        assert data["company"]["name"] == ""  # Sellers no longer have names
+        assert "seller_id" in data
+        assert data["seller_id"] == sample_product["seller"]["id"]

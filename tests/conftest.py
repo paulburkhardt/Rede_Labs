@@ -51,7 +51,6 @@ def sample_seller(client):
     """Create a sample seller and return its data"""
     response = client.post(
         "/createSeller",
-        json={"name": "Test Seller"}
     )
     assert response.status_code == 200
     return response.json()

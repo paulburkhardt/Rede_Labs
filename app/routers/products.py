@@ -119,17 +119,11 @@ def get_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Get seller information
-    seller = db.query(Seller).filter(Seller.id == db_product.seller_id).first()
-    
     # Format response
     return ProductDetail(
         id=db_product.id,
         name=db_product.name,
-        company={
-            "id": seller.id,
-            "name": ""  # Seller no longer has name attribute
-        },
+        seller_id=db_product.seller_id,
         priceInCent=db_product.price_in_cent,
         currency=db_product.currency,
         bestseller=db_product.bestseller,

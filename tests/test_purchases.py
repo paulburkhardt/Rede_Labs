@@ -130,7 +130,6 @@ class TestPurchaseWorkflow:
         # Step 1: Create seller
         org = client.post(
             "/createSeller",
-            json={"name": "Towel Emporium"}
         ).json()
         
         assert "auth_token" in org

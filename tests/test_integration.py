@@ -39,12 +39,10 @@ class TestAuthenticationSecurity:
         # Create two sellers
         seller1 = client.post(
             "/createSeller",
-            json={"name": "Org 1"}
         ).json()
         
         seller2 = client.post(
             "/createSeller",
-            json={"name": "Org 2"}
         ).json()
         
         # Seller 1 creates a product
@@ -110,12 +108,10 @@ class TestMultipleSellersAndProducts:
         # Create two sellers
         org1 = client.post(
             "/createSeller",
-            json={"name": "Brand A"}
         ).json()
         
         org2 = client.post(
             "/createSeller",
-            json={"name": "Brand B"}
         ).json()
         
         # Both create products with similar names
@@ -147,9 +143,9 @@ class TestMultipleSellersAndProducts:
         results = response.json()
         
         assert len(results) == 2
-        companies = [r["company"]["name"] for r in results]
-        # Sellers no longer have names, so all should be empty strings
-        assert all(name == "" for name in companies)
+        seller_ids = [r["seller_id"] for r in results]
+        # Should have both seller IDs
+        assert len(set(seller_ids)) == 2
     
     def test_seller_can_manage_multiple_products(self, client, sample_seller):
         """Test that one seller can create and manage multiple products"""
@@ -179,7 +175,7 @@ class TestMultipleSellersAndProducts:
             response = client.get(f"/product/{prod_id}")
             assert response.status_code == 200
             product = response.json()
-            assert product["company"]["id"] == sample_seller["id"]
+            assert product["seller_id"] == sample_seller["id"]
         
         # Update one of them
         response = client.patch(
@@ -210,7 +206,7 @@ class TestDataConsistency:
         product = response.json()
         
         assert product["name"] == original_name
-        assert product["company"]["id"] == original_org
+        assert product["seller_id"] == original_org
         assert product["priceInCent"] == 9999
     
     def test_search_reflects_updates(self, client, sample_product):
@@ -239,15 +235,14 @@ class TestDataConsistency:
         """Test that company information is consistent across different endpoints"""
         # Get from product detail
         detail_response = client.get(f"/product/{sample_product['id']}")
-        detail_company = detail_response.json()["company"]
+        detail_seller_id = detail_response.json()["seller_id"]
         
         # Get from search
         search_response = client.get(f"/search?q={sample_product['name']}")
-        search_company = search_response.json()[0]["company"]
+        search_seller_id = search_response.json()[0]["seller_id"]
         
         # Should be identical
-        assert detail_company["id"] == search_company["id"]
-        assert detail_company["name"] == search_company["name"] == ""  # Sellers no longer have names
+        assert detail_seller_id == search_seller_id == sample_product["seller"]["id"]
 
 
 class TestEdgeCases:

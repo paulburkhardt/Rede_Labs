@@ -31,15 +31,10 @@ def search_products(
     # Format results
     results = []
     for product in products:
-        # Get seller information for each product
-        seller = db.query(Seller).filter(Seller.id == product.seller_id).first()
         results.append(ProductSearchResult(
             id=product.id,
             name=product.name,
-            company={
-                "id": seller.id,
-                "name": ""  # Seller no longer has name attribute
-            },
+            seller_id=product.seller_id,
             priceInCent=product.price_in_cent,
             currency=product.currency,
             bestseller=product.bestseller,
