@@ -1,1 +1,0 @@
-# Green Agent module
