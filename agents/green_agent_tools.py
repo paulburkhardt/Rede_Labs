@@ -90,7 +90,7 @@ async def handle_incoming_message(message: str) -> str:
         return f"Error processing message: {str(e)}"
 
 
-async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
+async def orchestrate_battle(battle_id: str, seller_infos: list, rounds: int) -> str:
     """
     Orchestrate the dummy battle: send questions, collect responses, evaluate, and report.
 
@@ -115,15 +115,51 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
         await create_sellers(seller_infos)
         await create_buyer()
 
-
-
-        return "Battle orchestration started"
-
+        print("Seller and Buyer initialized")
     except Exception as e:
         error_msg = f"Error orchestrating battle: {str(e)}"
         record_battle_event(battle_context, error_msg)
         return error_msg
+    
+    # Round 1: Create listings
+    try:
+        await create_listings()
+    except Exception as e:
+        error_msg = f"Error creating listings: {str(e)}"
+        record_battle_event(battle_context, error_msg)
+        return error_msg
+    
+    # Round 2: Buy products
+    try:
+        await create_ranking()
+        await buy_products()
+    except Exception as e:
+        error_msg = f"Error buying products: {str(e)}"
+        record_battle_event(battle_context, error_msg)
+        return error_msg
+    
+    for i in range(rounds-1):
+        # Round 3: Update ranking, create revenue report and update listings
+        try:
+            await update_ranking()
+            await create_revenue_report()
+            await update_listings()
+        except Exception as e:
+            error_msg = f"Error updating ranking, creating revenue report or updating listings: {str(e)}"
+            record_battle_event(battle_context, error_msg)
+            return error_msg
+        
+        # Round 4: Buy products
+        try:
+            await buy_products()
+        except Exception as e:
+            error_msg = f"Error buying products: {str(e)}"
+            record_battle_event(battle_context, error_msg)
+            return error_msg
+    
+    await update_leaderboard()  
 
+    
 
 async def create_sellers(seller_infos: list):
     await create_participants(len(seller_infos), "/createSeller")
@@ -149,7 +185,32 @@ async def create_participants(no_participants: int, route: str):
 
         return response.json()
 
-async def create_products():
+async def create_listings():
     for seller in sellers:
         prompt = "todo"
         await send_message_to_agent(seller["url"], prompt)
+
+async def create_ranking():
+        # initialize randomly
+    pass
+
+async def update_ranking():
+        # update ranking based on sales etc.
+    pass
+
+async def buy_products():
+    for buyer in buyers:
+        prompt = "todo"
+        await send_message_to_agent(buyer["url"], prompt)
+
+
+async def create_revenue_report():
+    pass
+
+async def update_listings():
+    for seller in sellers:
+        prompt = "todo"
+        await send_message_to_agent(seller["url"], prompt)
+        
+async def update_leaderboard():
+    pass
