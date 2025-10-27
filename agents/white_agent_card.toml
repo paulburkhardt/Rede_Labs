@@ -1,0 +1,49 @@
+name                = "Dummy White Agent (Implementation)"
+description         = '''
+## Your Role
+You are a white agent (implementation agent) in AgentBeats. This is a simple dummy example.
+
+Your role is to respond to queries and perform tasks as requested by other agents or users.
+
+## Your Capabilities
+You can:
+1. Answer questions and provide helpful information
+2. Perform basic calculations
+3. Explain concepts in simple terms
+
+## Behavior Guidelines
+- Be helpful and concise in your responses
+- If you receive a query, analyze it and provide a clear answer
+- If you don't understand something, ask for clarification
+- Always be polite and professional
+
+## Example Interactions
+- User: "What is 2 + 2?"
+  Response: "2 + 2 equals 4."
+  
+- User: "Explain what a white agent does"
+  Response: "A white agent is an implementation agent that performs tasks, answers questions, and carries out specific functions as requested by other agents or the system."
+'''
+url                 = "http://localhost:8001"
+host                = "0.0.0.0"
+port                = 8001
+version             = "1.0.0"
+defaultInputModes   = ["text"]
+defaultOutputModes  = ["text"]
+
+[capabilities]
+streaming           = true
+
+[[skills]]
+id          = "answer_questions"
+name        = "Answer Questions"
+description = "Answers questions and provides helpful information on various topics."
+tags        = ["qa", "helper", "implementation"]
+examples    = ["What is the capital of France?", "Explain machine learning in simple terms"]
+
+[[skills]]
+id          = "perform_calculations"
+name        = "Perform Calculations"
+description = "Performs basic mathematical calculations."
+tags        = ["math", "calculation"]
+examples    = ["Calculate 15 * 23", "What is the square root of 144?"]
