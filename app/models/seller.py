@@ -6,12 +6,11 @@ import secrets
 from app.database import Base
 
 
-class Organization(Base):
-    __tablename__ = "organizations"
+class Seller(Base):
+    __tablename__ = "sellers"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, nullable=False)
     auth_token = Column(String, nullable=False, unique=True, default=lambda: secrets.token_urlsafe(32))
 
     # Relationship to products
-    products = relationship("Product", back_populates="organization")
+    products = relationship("Product", back_populates="seller")

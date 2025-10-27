@@ -1,13 +1,8 @@
 from pydantic import BaseModel
 
 
-class OrganizationCreate(BaseModel):
-    name: str
-
-
-class OrganizationResponse(BaseModel):
+class SellerResponse(BaseModel):
     id: str
-    name: str
     auth_token: str
 
     class Config:

@@ -10,7 +10,7 @@ from app.schemas.product import (
     ProductDetail
 )
 from app.models.product import Product
-from app.models.organization import Organization
+from app.models.organization import Seller
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -31,7 +31,7 @@ def create_product(
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
     
     # Verify organization exists and token is valid
-    organization = db.query(Organization).filter(Organization.auth_token == token).first()
+    organization = db.query(Seller).filter(Seller.auth_token == token).first()
     if not organization:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
@@ -74,7 +74,7 @@ def update_product(
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
     
     # Verify organization exists and token is valid
-    organization = db.query(Organization).filter(Organization.auth_token == token).first()
+    organization = db.query(Seller).filter(Seller.auth_token == token).first()
     if not organization:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
