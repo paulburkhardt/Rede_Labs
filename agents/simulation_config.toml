@@ -10,15 +10,16 @@ total_customers = 10000
 
 # Customer persona distribution (must sum to 100%)
 # Based on CSI (Consumer Style Inventory) research distributions
+# Rationale: Bath towels are low-involvement commodities where price matters
 [persona_distribution]
-price_conscious = 22.0      # Price-Conscious Value Hunters
-quality_seeker = 18.0        # Perfectionist Quality Seekers
-confused_overchoice = 25.0   # Confused by Overchoice
-hedonistic_shopper = 20.0    # Recreational Hedonistic Shoppers
-brand_conscious = 15.0       # Brand Conscious Price Perceivers
+price_conscious = 35.0      # Price-Conscious Value Hunters
+quality_seeker = 25.0        # Perfectionist Quality Seekers
+confused_overchoice = 20.0   # Confused by Overchoice
+hedonistic_shopper = 12.0    # Recreational Hedonistic Shoppers
+brand_conscious = 8.0       # Brand Conscious Price Perceivers
 
 # Validation: percentages should sum to 100%
-# Current sum: 22 + 18 + 25 + 20 + 15 = 100%
+# Current sum: 35 + 25 + 20 + 12 + 8 = 100%
 
 [simulation_settings]
 # How many customers to simulate per benchmark run (sample size)
