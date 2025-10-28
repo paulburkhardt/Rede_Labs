@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Dummy Green Agent Tools
 
@@ -11,6 +11,12 @@ from nturl2path import url2pathname
 from os import name
 import agentbeats as ab
 from agentbeats.logging import BattleContext
+import requests
+from agentbeats.utils.agents import send_message_to_agent
+from agentbeats.logging import record_battle_event, record_battle_result
+import random
+
+
 
 # Global state to store battle context
 battle_context = None
@@ -90,7 +96,7 @@ async def handle_incoming_message(message: str) -> str:
         return f"Error processing message: {str(e)}"
 
 
-async def orchestrate_battle(battle_id: str, seller_infos: list, rounds: int) -> str:
+async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     """
     Orchestrate the dummy battle: send questions, collect responses, evaluate, and report.
 
@@ -101,63 +107,35 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, rounds: int) ->
     Returns:
         str: Battle completion summary
     """
-    from agentbeats.utils.agents import send_message_to_agent
-    from agentbeats.logging import record_battle_event, record_battle_result
 
     global battle_context, sellers, buyers
 
     if not battle_context:
         record_battle_event(battle_context, "Battle orchestration started")
-
         return "Error: Battle context not initialized"
 
+    days: int = 5  # Total days in the battle
     try:
         await create_sellers(seller_infos)
         await create_buyer()
 
-        print("Seller and Buyer initialized")
+        # Day 1: Create listings
+        await create_listings()
+        await create_ranking()
+        await buyers_buy_products()
+
+        for i in range(days - 1):
+            await update_ranking()
+            await create_revenue_report()
+            await sellers_update_listings()
+            await buyers_buy_products()
+        
     except Exception as e:
         error_msg = f"Error orchestrating battle: {str(e)}"
         record_battle_event(battle_context, error_msg)
         return error_msg
     
-    # Round 1: Create listings
-    try:
-        await create_listings()
-    except Exception as e:
-        error_msg = f"Error creating listings: {str(e)}"
-        record_battle_event(battle_context, error_msg)
-        return error_msg
-    
-    # Round 2: Buy products
-    try:
-        await create_ranking()
-        await buy_products()
-    except Exception as e:
-        error_msg = f"Error buying products: {str(e)}"
-        record_battle_event(battle_context, error_msg)
-        return error_msg
-    
-    for i in range(rounds-1):
-        # Round 3: Update ranking, create revenue report and update listings
-        try:
-            await update_ranking()
-            await create_revenue_report()
-            await update_listings()
-        except Exception as e:
-            error_msg = f"Error updating ranking, creating revenue report or updating listings: {str(e)}"
-            record_battle_event(battle_context, error_msg)
-            return error_msg
-        
-        # Round 4: Buy products
-        try:
-            await buy_products()
-        except Exception as e:
-            error_msg = f"Error buying products: {str(e)}"
-            record_battle_event(battle_context, error_msg)
-            return error_msg
-    
-    await update_leaderboard()  
+    await report_leaderboard()
 
     
 
@@ -191,14 +169,66 @@ async def create_listings():
         await send_message_to_agent(seller["url"], prompt)
 
 async def create_ranking():
-        # initialize randomly
-    pass
+    # Get all products and assign random rankings
+    response = requests.get(f"{api_url}/search?q=")
+    if response.status_code != 200:
+        raise Exception(f"Failed to get products: {response.text}")
+    
+    products = response.json()
+    random_ranking = list(range(1, len(products) + 1))
+    random.shuffle(random_ranking)
+    
+    # Prepare batch update payload
+    rankings = [
+        {"product_id": product["id"], "ranking": random_ranking[i]}
+        for i, product in enumerate(products)
+    ]
+    
+    # Update all rankings in one call
+    update_response = requests.patch(
+        f"{api_url}/product/batch/rankings",
+        json={"rankings": rankings}
+    )
+    if update_response.status_code != 200:
+        raise Exception(f"Failed to set initial rankings: {update_response.text}")
+
+
 
 async def update_ranking():
-        # update ranking based on sales etc.
-    pass
+    # Query sales data and update product rankings
+    response = requests.get(
+        api_url + "/buy/stats/by-seller",
+    )
+    if response.status_code != 200:
+        raise Exception(f"Failed to get sales stats: {response.text}")
+    sales_stats = response.json()
+    
+    # Sort by number of purchases
+    sorted_stats = sorted(sales_stats, key=lambda x: x["purchase_count"], reverse=True)
+    
+    # Prepare batch update payload
+    rankings = []
+    for rank, stat in enumerate(sorted_stats, start=1):
+        seller_id = stat["seller_id"]
+        # Get all products for this seller
+        response = requests.get(f"{api_url}/search?seller_id={seller_id}")
+        if response.status_code == 200:
+            products = response.json()
+            for product in products:
+                rankings.append({"product_id": product["id"], "ranking": rank})
+    
+    # Update all rankings in one call
+    if rankings:
+        update_response = requests.patch(
+            f"{api_url}/product/batch/rankings",
+            json={"rankings": rankings}
+        )
+        if update_response.status_code != 200:
+            print(f"Warning: Failed to update rankings: {update_response.text}")
 
-async def buy_products():
+
+
+async def buyers_buy_products():
     for buyer in buyers:
         prompt = "todo"
         await send_message_to_agent(buyer["url"], prompt)
@@ -207,10 +237,12 @@ async def buy_products():
 async def create_revenue_report():
     pass
 
-async def update_listings():
+async def sellers_update_listings():
     for seller in sellers:
         prompt = "todo"
         await send_message_to_agent(seller["url"], prompt)
         
-async def update_leaderboard():
+async def report_leaderboard():
+    """Queries the purchase history and reports a leaderboard (total revenue,
+    etc.) to AgentBeats."""
     pass
