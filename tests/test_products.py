@@ -9,12 +9,12 @@ class TestProductCreation:
         """Test successful product creation with authentication"""
         product_data = {
             "name": "Premium Towel",
-            "shortDescription": "Soft and absorbent",
-            "longDescription": "Made from 100% organic cotton, perfect for daily use",
+            "short_description": "Soft and absorbent",
+            "long_description": "Made from 100% organic cotton, perfect for daily use",
             "price": 2999,
             "image": {
                 "url": "https://example.com/towel.jpg",
-                "alternativText": "White towel on shelf"
+                "alternative_text": "White towel on shelf"
             }
         }
         
@@ -33,12 +33,12 @@ class TestProductCreation:
         """Test that product creation fails without authentication"""
         product_data = {
             "name": "Test Product",
-            "shortDescription": "Test",
-            "longDescription": "Test description",
+            "short_description": "Test",
+            "long_description": "Test description",
             "price": 1000,
             "image": {
                 "url": "https://example.com/test.jpg",
-                "alternativText": "Test"
+                "alternative_text": "Test"
             }
         }
         
@@ -53,12 +53,12 @@ class TestProductCreation:
         """Test that product creation fails with invalid token"""
         product_data = {
             "name": "Test Product",
-            "shortDescription": "Test",
-            "longDescription": "Test description",
+            "short_description": "Test",
+            "long_description": "Test description",
             "price": 1000,
             "image": {
                 "url": "https://example.com/test.jpg",
-                "alternativText": "Test"
+                "alternative_text": "Test"
             }
         }
         
@@ -75,12 +75,12 @@ class TestProductCreation:
         """Test that creating a product with duplicate ID fails"""
         product_data = {
             "name": "Product One",
-            "shortDescription": "First product",
-            "longDescription": "Description",
+            "short_description": "First product",
+            "long_description": "Description",
             "price": 1000,
             "image": {
                 "url": "https://example.com/1.jpg",
-                "alternativText": "Image 1"
+                "alternative_text": "Image 1"
             }
         }
         
@@ -128,7 +128,7 @@ class TestProductUpdate:
         get_response = client.get(f"/product/{sample_product['id']}")
         product = get_response.json()
         assert product["name"] == "Updated Product Name"
-        assert product["priceInCent"] == 2499
+        assert product["price_in_cent"] == 2499
     
     def test_update_product_partial(self, client, sample_product):
         """Test partial product update (only some fields)"""
@@ -145,7 +145,7 @@ class TestProductUpdate:
         # Verify only price changed
         get_response = client.get(f"/product/{sample_product['id']}")
         product = get_response.json()
-        assert product["priceInCent"] == 1599
+        assert product["price_in_cent"] == 1599
         assert product["name"] == sample_product["name"]  # Unchanged
     
     def test_update_product_without_auth(self, client, sample_product):
@@ -199,9 +199,9 @@ class TestProductRetrieval:
         # Verify structure
         assert data["id"] == sample_product["id"]
         assert data["name"] == sample_product["name"]
-        assert data["shortDescription"] == sample_product["shortDescription"]
-        assert data["longDescription"] == sample_product["longDescription"]
-        assert data["priceInCent"] == sample_product["price"]
+        assert data["short_description"] == sample_product["short_description"]
+        assert data["long_description"] == sample_product["long_description"]
+        assert data["price_in_cent"] == sample_product["price"]
         assert data["currency"] == "USD"
         assert "seller_id" in data
         assert data["seller_id"] == sample_product["seller"]["id"]
@@ -258,12 +258,12 @@ class TestProductRanking:
         for i in range(3):
             product_data = {
                 "name": f"Product {i}",
-                "shortDescription": f"Description {i}",
-                "longDescription": f"Long description {i}",
+                "short_description": f"Description {i}",
+                "long_description": f"Long description {i}",
                 "price": 1000 + i * 100,
                 "image": {
                     "url": f"https://example.com/product{i}.jpg",
-                    "alternativText": f"Product {i}"
+                    "alternative_text": f"Product {i}"
                 }
             }
             create_response = client.post(
@@ -360,12 +360,12 @@ class TestProductRanking:
         # Create product
         product_data = {
             "name": "Ranked Product",
-            "shortDescription": "Test ranking",
-            "longDescription": "Test ranking persistence",
+            "short_description": "Test ranking",
+            "long_description": "Test ranking persistence",
             "price": 1500,
             "image": {
                 "url": "https://example.com/ranked.jpg",
-                "alternativText": "Ranked"
+                "alternative_text": "Ranked"
             }
         }
         
@@ -424,10 +424,10 @@ class TestRankingWithPurchaseStats:
         # Create products for each seller
         product1_data = {
             "name": "Popular Product",
-            "shortDescription": "Best seller",
-            "longDescription": "This will have more purchases",
+            "short_description": "Best seller",
+            "long_description": "This will have more purchases",
             "price": 1000,
-            "image": {"url": "https://example.com/p1.jpg", "alternativText": "P1"}
+            "image": {"url": "https://example.com/p1.jpg", "alternative_text": "P1"}
         }
         client.post(
             "/product/popular-1",
@@ -437,10 +437,10 @@ class TestRankingWithPurchaseStats:
         
         product2_data = {
             "name": "Less Popular Product",
-            "shortDescription": "Fewer sales",
-            "longDescription": "This will have fewer purchases",
+            "short_description": "Fewer sales",
+            "long_description": "This will have fewer purchases",
             "price": 1000,
-            "image": {"url": "https://example.com/p2.jpg", "alternativText": "P2"}
+            "image": {"url": "https://example.com/p2.jpg", "alternative_text": "P2"}
         }
         client.post(
             "/product/unpopular-1",
@@ -452,14 +452,14 @@ class TestRankingWithPurchaseStats:
         for _ in range(5):
             client.post(
                 "/buy/popular-1",
-                json={"productId": "popular-1"},
+                json={"product_id": "popular-1"},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
         for _ in range(2):
             client.post(
                 "/buy/unpopular-1",
-                json={"productId": "unpopular-1"},
+                json={"product_id": "unpopular-1"},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         

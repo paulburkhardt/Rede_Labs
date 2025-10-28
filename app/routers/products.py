@@ -45,11 +45,11 @@ def create_product(
     db_product = Product(
         id=id,
         name=product.name,
-        short_description=product.shortDescription,
-        long_description=product.longDescription,
+        short_description=product.short_description,
+        long_description=product.long_description,
         price_in_cent=product.price,
         image_url=product.image.url,
-        image_alternative_text=product.image.alternativText,
+        image_alternative_text=product.image.alternative_text,
         seller_id=seller.id
     )
     db.add(db_product)
@@ -91,15 +91,15 @@ def update_product(
     # Update fields if provided
     if product.name is not None:
         db_product.name = product.name
-    if product.shortDescription is not None:
-        db_product.short_description = product.shortDescription
-    if product.longDescription is not None:
-        db_product.long_description = product.longDescription
+    if product.short_description is not None:
+        db_product.short_description = product.short_description
+    if product.long_description is not None:
+        db_product.long_description = product.long_description
     if product.price is not None:
         db_product.price_in_cent = product.price
     if product.image is not None:
         db_product.image_url = product.image.url
-        db_product.image_alternative_text = product.image.alternativText
+        db_product.image_alternative_text = product.image.alternative_text
     if product.ranking is not None:
         db_product.ranking = product.ranking
     
@@ -127,14 +127,14 @@ def get_product(
         id=db_product.id,
         name=db_product.name,
         seller_id=db_product.seller_id,
-        priceInCent=db_product.price_in_cent,
+        price_in_cent=db_product.price_in_cent,
         currency=db_product.currency,
         bestseller=db_product.bestseller,
-        shortDescription=db_product.short_description,
-        longDescription=db_product.long_description,
+        short_description=db_product.short_description,
+        long_description=db_product.long_description,
         image={
             "url": db_product.image_url or "",
-            "alternativText": db_product.image_alternative_text
+            "alternative_text": db_product.image_alternative_text
         }
     )
 

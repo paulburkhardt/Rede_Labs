@@ -19,12 +19,12 @@ class TestProductSearch:
                 f"/product/{prod['id']}",
                 json={
                     "name": prod["name"],
-                    "shortDescription": "Test product",
-                    "longDescription": "Test description",
+                    "short_description": "Test product",
+                    "long_description": "Test description",
                     "price": prod["price"],
                     "image": {
                         "url": "https://example.com/img.jpg",
-                        "alternativText": "Test image"
+                        "alternative_text": "Test image"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -47,12 +47,12 @@ class TestProductSearch:
             "/product/test-prod",
             json={
                 "name": "PREMIUM Towel",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 1999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -71,12 +71,12 @@ class TestProductSearch:
             "/product/test-prod",
             json={
                 "name": "Extraordinary Product",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 1999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -117,12 +117,12 @@ class TestProductSearch:
             "/product/regular-prod",
             json={
                 "name": "Regular Towel",
-                "shortDescription": "Regular",
-                "longDescription": "Regular",
+                "short_description": "Regular",
+                "long_description": "Regular",
                 "price": 1999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -134,12 +134,12 @@ class TestProductSearch:
             "/product/amazing-towel",
             json={
                 "name": "Amazing Towel",
-                "shortDescription": "Amazing",
-                "longDescription": "Amazing",
+                "short_description": "Amazing",
+                "long_description": "Amazing",
                 "price": 2999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -167,8 +167,8 @@ class TestProductSearch:
         
         # Verify all required fields
         required_fields = [
-            "id", "name", "seller_id", "priceInCent", 
-            "currency", "bestseller", "shortDescription", "image"
+            "id", "name", "seller_id", "price_in_cent", 
+            "currency", "bestseller", "short_description", "image"
         ]
         for field in required_fields:
             assert field in result

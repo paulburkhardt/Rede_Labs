@@ -4,7 +4,7 @@ from typing import Optional, List, Dict
 
 class ImageSchema(BaseModel):
     url: str
-    alternativText: Optional[str] = None
+    alternative_text: Optional[str] = None
 
 
 class CompanySchema(BaseModel):
@@ -14,16 +14,16 @@ class CompanySchema(BaseModel):
 
 class ProductCreate(BaseModel):
     name: str
-    shortDescription: str
-    longDescription: str
+    short_description: str
+    long_description: str
     price: int
     image: ImageSchema
 
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
-    shortDescription: Optional[str] = None
-    longDescription: Optional[str] = None
+    short_description: Optional[str] = None
+    long_description: Optional[str] = None
     price: Optional[int] = None
     image: Optional[ImageSchema] = None
     ranking: Optional[int] = None
@@ -33,10 +33,10 @@ class ProductSearchResult(BaseModel):
     id: str
     name: str
     seller_id: str
-    priceInCent: int
+    price_in_cent: int
     currency: str
     bestseller: bool
-    shortDescription: str
+    short_description: str
     image: ImageSchema
     ranking: Optional[int] = None
 
@@ -48,11 +48,11 @@ class ProductDetail(BaseModel):
     id: str
     name: str
     seller_id: str
-    priceInCent: int
+    price_in_cent: int
     currency: str
     bestseller: bool
-    shortDescription: str
-    longDescription: str
+    short_description: str
+    long_description: str
     image: ImageSchema
 
     class Config:

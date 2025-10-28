@@ -72,12 +72,12 @@ def sample_product(client, sample_seller):
     """Create a sample product and return its data"""
     product_data = {
         "name": "Test Product",
-        "shortDescription": "A test product",
-        "longDescription": "This is a detailed description of the test product",
+        "short_description": "A test product",
+        "long_description": "This is a detailed description of the test product",
         "price": 1999,
         "image": {
             "url": "https://example.com/image.jpg",
-            "alternativText": "Test product image"
+            "alternative_text": "Test product image"
         }
     }
     

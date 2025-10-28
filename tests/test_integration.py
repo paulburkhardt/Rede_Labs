@@ -9,12 +9,12 @@ class TestAuthenticationSecurity:
         """Test that both 'Bearer token' and 'token' formats work"""
         product_data = {
             "name": "Test Product",
-            "shortDescription": "Test",
-            "longDescription": "Test",
+            "short_description": "Test",
+            "long_description": "Test",
             "price": 1999,
             "image": {
                 "url": "https://example.com/img.jpg",
-                "alternativText": "Test"
+                "alternative_text": "Test"
             }
         }
         
@@ -50,12 +50,12 @@ class TestAuthenticationSecurity:
             "/product/org1-product",
             json={
                 "name": "Org 1 Product",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 1999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
@@ -85,13 +85,13 @@ class TestAuthenticationSecurity:
         # Both should be able to purchase
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"product_id": sample_product['id']},
             headers={"Authorization": f"Bearer {buyer1['auth_token']}"}
         )
         
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"product_id": sample_product['id']},
             headers={"Authorization": f"Bearer {buyer2['auth_token']}"}
         )
         
@@ -117,12 +117,12 @@ class TestMultipleSellersAndProducts:
         # Both create products with similar names
         product_data = {
             "name": "Premium Towel",
-            "shortDescription": "Great towel",
-            "longDescription": "Very nice towel",
+            "short_description": "Great towel",
+            "long_description": "Very nice towel",
             "price": 1999,
             "image": {
                 "url": "https://example.com/towel.jpg",
-                "alternativText": "Towel"
+                "alternative_text": "Towel"
             }
         }
         
@@ -157,12 +157,12 @@ class TestMultipleSellersAndProducts:
                 f"/product/prod-{i}",
                 json={
                     "name": f"Product {i}",
-                    "shortDescription": f"Description {i}",
-                    "longDescription": f"Long description {i}",
+                    "short_description": f"Description {i}",
+                    "long_description": f"Long description {i}",
                     "price": 1000 + (i * 100),
                     "image": {
                         "url": f"https://example.com/img{i}.jpg",
-                        "alternativText": f"Image {i}"
+                        "alternative_text": f"Image {i}"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -207,7 +207,7 @@ class TestDataConsistency:
         
         assert product["name"] == original_name
         assert product["seller_id"] == original_org
-        assert product["priceInCent"] == 9999
+        assert product["price_in_cent"] == 9999
     
     def test_search_reflects_updates(self, client, sample_product):
         """Test that search results reflect product updates"""
@@ -254,12 +254,12 @@ class TestEdgeCases:
             "/product/free-product",
             json={
                 "name": "Free Sample",
-                "shortDescription": "Free",
-                "longDescription": "Free product",
+                "short_description": "Free",
+                "long_description": "Free product",
                 "price": 0,
                 "image": {
                     "url": "https://example.com/free.jpg",
-                    "alternativText": "Free"
+                    "alternative_text": "Free"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -269,7 +269,7 @@ class TestEdgeCases:
         
         # Verify it was created
         product = client.get("/product/free-product").json()
-        assert product["priceInCent"] == 0
+        assert product["price_in_cent"] == 0
     
     def test_product_with_very_long_description(self, client, sample_seller):
         """Test creating a product with very long descriptions"""
@@ -279,12 +279,12 @@ class TestEdgeCases:
             "/product/long-desc",
             json={
                 "name": "Product with long description",
-                "shortDescription": long_text,
-                "longDescription": long_text,
+                "short_description": long_text,
+                "long_description": long_text,
                 "price": 1999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -299,12 +299,12 @@ class TestEdgeCases:
             "/product/special-prod",
             json={
                 "name": "Product & Co. (Premium)",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 1999,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -345,12 +345,12 @@ class TestSalesStats:
         # Create a product
         product_data = {
             "name": "Test Product",
-            "shortDescription": "Test",
-            "longDescription": "Test",
+            "short_description": "Test",
+            "long_description": "Test",
             "price": 2500,
             "image": {
                 "url": "https://example.com/img.jpg",
-                "alternativText": "Test"
+                "alternative_text": "Test"
             }
         }
         client.post(
@@ -362,7 +362,7 @@ class TestSalesStats:
         # Make a purchase
         client.post(
             "/buy/test-prod-1",
-            json={"productId": "test-prod-1"},
+            json={"product_id": "test-prod-1"},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -396,12 +396,12 @@ class TestSalesStats:
                 f"/product/prod-{i}",
                 json={
                     "name": f"Product {i}",
-                    "shortDescription": "Test",
-                    "longDescription": "Test",
+                    "short_description": "Test",
+                    "long_description": "Test",
                     "price": 1000 * (i + 1),
                     "image": {
                         "url": "https://example.com/img.jpg",
-                        "alternativText": "Test"
+                        "alternative_text": "Test"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -417,7 +417,7 @@ class TestSalesStats:
             # Each buyer purchases product 0
             client.post(
                 "/buy/prod-0",
-                json={"productId": "prod-0"},
+                json={"product_id": "prod-0"},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
@@ -428,7 +428,7 @@ class TestSalesStats:
         ).json()
         client.post(
             "/buy/prod-1",
-            json={"productId": "prod-1"},
+            json={"product_id": "prod-1"},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -455,12 +455,12 @@ class TestSalesStats:
             "/product/seller1-prod",
             json={
                 "name": "Seller 1 Product",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 1000,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
@@ -470,12 +470,12 @@ class TestSalesStats:
             "/product/seller2-prod",
             json={
                 "name": "Seller 2 Product",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 2000,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
@@ -490,12 +490,12 @@ class TestSalesStats:
         # Buyer purchases from both sellers
         client.post(
             "/buy/seller1-prod",
-            json={"productId": "seller1-prod"},
+            json={"product_id": "seller1-prod"},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         client.post(
             "/buy/seller2-prod",
-            json={"productId": "seller2-prod"},
+            json={"product_id": "seller2-prod"},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -540,19 +540,19 @@ class TestSalesStats:
             "/product/test-prod",
             json={
                 "name": "Test Product",
-                "shortDescription": "Test",
-                "longDescription": "Test",
+                "short_description": "Test",
+                "long_description": "Test",
                 "price": 1500,
                 "image": {
                     "url": "https://example.com/img.jpg",
-                    "alternativText": "Test"
+                    "alternative_text": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         client.post(
             "/buy/test-prod",
-            json={"productId": "test-prod"},
+            json={"product_id": "test-prod"},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -580,12 +580,12 @@ class TestSalesStats:
                 f"/product/prod-{i}",
                 json={
                     "name": f"Product {i}",
-                    "shortDescription": "Test",
-                    "longDescription": "Test",
+                    "short_description": "Test",
+                    "long_description": "Test",
                     "price": 1000 * (i + 1),
                     "image": {
                         "url": "https://example.com/img.jpg",
-                        "alternativText": "Test"
+                        "alternative_text": "Test"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -594,7 +594,7 @@ class TestSalesStats:
             # Purchase each product
             client.post(
                 f"/buy/prod-{i}",
-                json={"productId": f"prod-{i}"},
+                json={"product_id": f"prod-{i}"},
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
         

@@ -37,13 +37,13 @@ def search_products(
             id=product.id,
             name=product.name,
             seller_id=product.seller_id,
-            priceInCent=product.price_in_cent,
+            price_in_cent=product.price_in_cent,
             currency=product.currency,
             bestseller=product.bestseller,
-            shortDescription=product.short_description,
+            short_description=product.short_description,
             image={
                 "url": product.image_url or "",
-                "alternativText": product.image_alternative_text
+                "alternative_text": product.image_alternative_text
             },
             ranking=product.ranking
         ))

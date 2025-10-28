@@ -12,9 +12,9 @@ router = APIRouter(prefix="/buy", tags=["purchases"])
 
 # todo: make sure api endpoints only get called if the phase where they are allowed (seller & buyer phase)
 
-@router.post("/{productId}", response_model=PurchaseResponse)
+@router.post("/{product_id}", response_model=PurchaseResponse)
 def create_purchase(
-    productId: str,
+    product_id: str,
     purchase: PurchaseCreate,
     authorization: str = Header(..., description="Bearer token for buyer"),
     db: Session = Depends(get_db)
@@ -33,13 +33,13 @@ def create_purchase(
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
     # Verify product exists
-    product = db.query(Product).filter(Product.id == productId).first()
+    product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Create purchase record
     db_purchase = Purchase(
-        product_id=productId,
+        product_id=product_id,
         buyer_id=buyer.id
     )
     db.add(db_purchase)
@@ -48,7 +48,7 @@ def create_purchase(
     
     return PurchaseResponse(
         id=db_purchase.id,
-        productId=db_purchase.product_id
+        product_id=db_purchase.product_id
     )
 
 
