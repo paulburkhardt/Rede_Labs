@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.database import get_db
 from app.schemas.purchase import PurchaseCreate, PurchaseResponse
@@ -48,3 +49,32 @@ def create_purchase(
         id=db_purchase.id,
         productId=db_purchase.product_id
     )
+
+
+@router.get("/stats/by-seller")
+def get_purchases_per_seller(db: Session = Depends(get_db)):
+    """
+    Get the number of purchases per seller.
+    Returns a list of sellers with their purchase counts.
+    """
+    from app.models.seller import Seller
+    
+    # Query to count purchases per seller
+    results = (
+        db.query(
+            Seller.id,
+            func.count(Purchase.id).label("purchase_count")
+        )
+        .outerjoin(Product, Product.seller_id == Seller.id)
+        .outerjoin(Purchase, Purchase.product_id == Product.id)
+        .group_by(Seller.id)
+        .all()
+    )
+    
+    return [
+        {
+            "seller_id": result.id,
+            "purchase_count": result.purchase_count
+        }
+        for result in results
+    ]

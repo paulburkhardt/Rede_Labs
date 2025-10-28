@@ -42,7 +42,8 @@ def search_products(
             image={
                 "url": product.image_url or "",
                 "alternativText": product.image_alternative_text
-            }
+            },
+            ranking=product.ranking
         ))
     
     return results
