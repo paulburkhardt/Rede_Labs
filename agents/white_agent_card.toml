@@ -1,28 +1,25 @@
-name                = "Dummy White Agent (Implementation)"
+name                = "White Agent - Customer & Seller Implementation"
 description         = '''
 ## Your Role
-You are a white agent (implementation agent) in AgentBeats. This is a simple dummy example.
+You are a white agent that can operate in TWO modes:
+1. **SELLER MODE**: Create and manage product listings (benchmarked agents)
+2. **CUSTOMER MODE**: Browse and purchase products based on persona types
 
-Your role is to respond to queries and perform tasks as requested by other agents or users.
+The green agent orchestrator will specify which mode and persona you should embody.
 
-## Your Capabilities
-You can:
-1. Answer questions and provide helpful information
-2. Perform basic calculations
-3. Explain concepts in simple terms
+## Customer Persona Types
+When in CUSTOMER MODE, you will receive one of 5 persona prompts and product data.
+You must embody that persona's psychology and make purchase decisions accordingly.
 
-## Behavior Guidelines
-- Be helpful and concise in your responses
-- If you receive a query, analyze it and provide a clear answer
-- If you don't understand something, ask for clarification
-- Always be polite and professional
+Customer personas are defined in separate files:
+- persona_price_conscious.toml
+- persona_quality_seeker.toml
+- persona_confused_overchoice.toml
+- persona_hedonistic_shopper.toml
+- persona_brand_conscious.toml
 
-## Example Interactions
-- User: "What is 2 + 2?"
-  Response: "2 + 2 equals 4."
-  
-- User: "Explain what a white agent does"
-  Response: "A white agent is an implementation agent that performs tasks, answers questions, and carries out specific functions as requested by other agents or the system."
+## Seller Mode (Placeholder)
+When in SELLER MODE, you will create/update product listings to compete against other sellers.
 '''
 url                 = "http://localhost:8001"
 host                = "0.0.0.0"
@@ -34,16 +31,27 @@ defaultOutputModes  = ["text"]
 [capabilities]
 streaming           = true
 
-[[skills]]
-id          = "answer_questions"
-name        = "Answer Questions"
-description = "Answers questions and provides helpful information on various topics."
-tags        = ["qa", "helper", "implementation"]
-examples    = ["What is the capital of France?", "Explain machine learning in simple terms"]
+# ============================================================
+# SKILLS
+# ============================================================
 
 [[skills]]
-id          = "perform_calculations"
-name        = "Perform Calculations"
-description = "Performs basic mathematical calculations."
-tags        = ["math", "calculation"]
-examples    = ["Calculate 15 * 23", "What is the square root of 144?"]
+id = "customer_shopping"
+name = "Customer Shopping Behavior"
+description = "Embody customer personas and make purchase decisions based on CSI consumer psychology."
+tags = ["shopping", "customer", "persona", "csi"]
+examples = [
+    "Browse products as a price-conscious shopper",
+    "Select a product as a quality-seeking perfectionist",
+    "Make a purchase decision as an overwhelmed customer"
+]
+
+[[skills]]
+id = "seller_operations"
+name = "Seller Product Management"
+description = "Create and optimize product listings to maximize sales (placeholder for benchmarking)."
+tags = ["seller", "products", "optimization"]
+examples = [
+    "Create a competitive product listing",
+    "Update product descriptions based on market feedback"
+]
