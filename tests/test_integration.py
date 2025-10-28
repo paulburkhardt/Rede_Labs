@@ -323,6 +323,296 @@ class TestEdgeCases:
         pass  # Skip for now as it would require query parameter
 
 
+class TestSalesStats:
+    """Test sales statistics endpoint"""
+    
+    def test_get_sales_stats_no_sales(self, client, sample_seller):
+        """Test getSalesStats with no sales returns empty data"""
+        response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["seller_id"] == sample_seller["id"]
+        assert data["total_sales"] == 0
+        assert data["total_revenue_in_cent"] == 0
+        assert data["purchases"] == []
+    
+    def test_get_sales_stats_with_single_purchase(self, client, sample_seller, sample_buyer):
+        """Test getSalesStats with a single purchase"""
+        # Create a product
+        product_data = {
+            "name": "Test Product",
+            "shortDescription": "Test",
+            "longDescription": "Test",
+            "price": 2500,
+            "image": {
+                "url": "https://example.com/img.jpg",
+                "alternativText": "Test"
+            }
+        }
+        client.post(
+            "/product/test-prod-1",
+            json=product_data,
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        # Make a purchase
+        client.post(
+            "/buy/test-prod-1",
+            json={"productId": "test-prod-1"},
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+        
+        # Get sales stats
+        response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["seller_id"] == sample_seller["id"]
+        assert data["total_sales"] == 1
+        assert data["total_revenue_in_cent"] == 2500
+        assert len(data["purchases"]) == 1
+        
+        purchase = data["purchases"][0]
+        assert purchase["product_id"] == "test-prod-1"
+        assert purchase["product_name"] == "Test Product"
+        assert purchase["buyer_id"] == sample_buyer["id"]
+        assert purchase["buyer_name"] == sample_buyer["name"]
+        assert purchase["price_in_cent"] == 2500
+        assert purchase["currency"] == "USD"
+        assert "purchased_at" in purchase
+    
+    def test_get_sales_stats_with_multiple_purchases(self, client, sample_seller):
+        """Test getSalesStats with multiple purchases from different buyers"""
+        # Create two products
+        for i in range(2):
+            client.post(
+                f"/product/prod-{i}",
+                json={
+                    "name": f"Product {i}",
+                    "shortDescription": "Test",
+                    "longDescription": "Test",
+                    "price": 1000 * (i + 1),
+                    "image": {
+                        "url": "https://example.com/img.jpg",
+                        "alternativText": "Test"
+                    }
+                },
+                headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+            )
+        
+        # Create three buyers and make purchases
+        for i in range(3):
+            buyer = client.post(
+                "/createBuyer",
+                json={"name": f"Buyer {i}"}
+            ).json()
+            
+            # Each buyer purchases product 0
+            client.post(
+                "/buy/prod-0",
+                json={"productId": "prod-0"},
+                headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+            )
+        
+        # One buyer purchases product 1
+        buyer = client.post(
+            "/createBuyer",
+            json={"name": "Buyer 3"}
+        ).json()
+        client.post(
+            "/buy/prod-1",
+            json={"productId": "prod-1"},
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        
+        # Get sales stats
+        response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_sales"] == 4
+        assert data["total_revenue_in_cent"] == (1000 * 3) + (2000 * 1)  # 5000
+        assert len(data["purchases"]) == 4
+    
+    def test_get_sales_stats_only_returns_own_sales(self, client):
+        """Test that getSalesStats only returns sales for the authenticated seller"""
+        # Create two sellers
+        seller1 = client.post("/createSeller").json()
+        seller2 = client.post("/createSeller").json()
+        
+        # Each seller creates a product
+        client.post(
+            "/product/seller1-prod",
+            json={
+                "name": "Seller 1 Product",
+                "shortDescription": "Test",
+                "longDescription": "Test",
+                "price": 1000,
+                "image": {
+                    "url": "https://example.com/img.jpg",
+                    "alternativText": "Test"
+                }
+            },
+            headers={"Authorization": f"Bearer {seller1['auth_token']}"}
+        )
+        
+        client.post(
+            "/product/seller2-prod",
+            json={
+                "name": "Seller 2 Product",
+                "shortDescription": "Test",
+                "longDescription": "Test",
+                "price": 2000,
+                "image": {
+                    "url": "https://example.com/img.jpg",
+                    "alternativText": "Test"
+                }
+            },
+            headers={"Authorization": f"Bearer {seller2['auth_token']}"}
+        )
+        
+        # Create a buyer
+        buyer = client.post(
+            "/createBuyer",
+            json={"name": "Test Buyer"}
+        ).json()
+        
+        # Buyer purchases from both sellers
+        client.post(
+            "/buy/seller1-prod",
+            json={"productId": "seller1-prod"},
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        client.post(
+            "/buy/seller2-prod",
+            json={"productId": "seller2-prod"},
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        
+        # Get sales stats for seller 1
+        response1 = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {seller1['auth_token']}"}
+        )
+        data1 = response1.json()
+        assert data1["total_sales"] == 1
+        assert data1["total_revenue_in_cent"] == 1000
+        assert data1["purchases"][0]["product_id"] == "seller1-prod"
+        
+        # Get sales stats for seller 2
+        response2 = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {seller2['auth_token']}"}
+        )
+        data2 = response2.json()
+        assert data2["total_sales"] == 1
+        assert data2["total_revenue_in_cent"] == 2000
+        assert data2["purchases"][0]["product_id"] == "seller2-prod"
+    
+    def test_get_sales_stats_requires_authentication(self, client):
+        """Test that getSalesStats requires valid authentication"""
+        # No authorization header
+        response = client.get("/getSalesStats")
+        assert response.status_code == 422  # Missing required header
+        
+        # Invalid token
+        response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": "Bearer invalid-token"}
+        )
+        assert response.status_code == 401
+        assert "Invalid authentication token" in response.json()["detail"]
+    
+    def test_get_sales_stats_with_bearer_prefix_variations(self, client, sample_seller, sample_buyer):
+        """Test that getSalesStats works with and without Bearer prefix"""
+        # Create and purchase a product
+        client.post(
+            "/product/test-prod",
+            json={
+                "name": "Test Product",
+                "shortDescription": "Test",
+                "longDescription": "Test",
+                "price": 1500,
+                "image": {
+                    "url": "https://example.com/img.jpg",
+                    "alternativText": "Test"
+                }
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        client.post(
+            "/buy/test-prod",
+            json={"productId": "test-prod"},
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+        
+        # Test with Bearer prefix
+        response1 = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        assert response1.status_code == 200
+        assert response1.json()["total_sales"] == 1
+        
+        # Test without Bearer prefix
+        response2 = client.get(
+            "/getSalesStats",
+            headers={"Authorization": sample_seller['auth_token']}
+        )
+        assert response2.status_code == 200
+        assert response2.json()["total_sales"] == 1
+    
+    def test_get_sales_stats_purchase_order(self, client, sample_seller, sample_buyer):
+        """Test that purchases are returned in the correct order"""
+        # Create multiple products
+        for i in range(3):
+            client.post(
+                f"/product/prod-{i}",
+                json={
+                    "name": f"Product {i}",
+                    "shortDescription": "Test",
+                    "longDescription": "Test",
+                    "price": 1000 * (i + 1),
+                    "image": {
+                        "url": "https://example.com/img.jpg",
+                        "alternativText": "Test"
+                    }
+                },
+                headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+            )
+            
+            # Purchase each product
+            client.post(
+                f"/buy/prod-{i}",
+                json={"productId": f"prod-{i}"},
+                headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+            )
+        
+        # Get sales stats
+        response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        data = response.json()
+        assert len(data["purchases"]) == 3
+        
+        # Verify all purchases have timestamps
+        for purchase in data["purchases"]:
+            assert "purchased_at" in purchase
+            assert purchase["purchased_at"] is not None
+
+
 class TestAPIHealth:
     """Test API health and basic endpoints"""
     

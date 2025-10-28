@@ -127,7 +127,6 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
 
         for i in range(days - 1):
             await update_ranking()
-            await create_revenue_report()
             await sellers_update_listings()
             await buyers_buy_products()
         
@@ -264,9 +263,6 @@ Response format:
             if battle_context:
                 record_battle_event(battle_context, error_msg)
 
-
-async def create_revenue_report():
-    pass
 
 async def sellers_update_listings():
     for seller in sellers:
