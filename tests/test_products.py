@@ -449,17 +449,17 @@ class TestRankingWithPurchaseStats:
         )
         
         # Make purchases - more for product1
-        for _ in range(5):
+        for i in range(5):
             client.post(
                 "/buy/popular-1",
-                json={"product_id": "popular-1"},
+                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
-        for _ in range(2):
+        for i in range(2):
             client.post(
                 "/buy/unpopular-1",
-                json={"product_id": "unpopular-1"},
+                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         

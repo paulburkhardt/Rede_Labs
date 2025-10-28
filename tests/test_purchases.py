@@ -9,7 +9,7 @@ class TestPurchaseCreation:
         """Test successful product purchase"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -26,7 +26,7 @@ class TestPurchaseCreation:
         """Test that purchase fails without authentication"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']}
+            json={"purchased_at": 0}
         )
         
         assert response.status_code == 422  # Missing required header
@@ -35,7 +35,7 @@ class TestPurchaseCreation:
         """Test that purchase fails with invalid buyer token"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": "Bearer invalid-buyer-token"}
         )
         
@@ -46,7 +46,7 @@ class TestPurchaseCreation:
         """Test that purchasing nonexistent product fails"""
         response = client.post(
             "/buy/nonexistent-product-id",
-            json={"product_id": "nonexistent-product-id"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -58,7 +58,7 @@ class TestPurchaseCreation:
         # First purchase
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert response1.status_code == 200
@@ -67,7 +67,7 @@ class TestPurchaseCreation:
         # Second purchase of same product
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 1},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert response2.status_code == 200
@@ -93,13 +93,13 @@ class TestPurchaseCreation:
         # Both purchase the same product
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer1['auth_token']}"}
         )
         
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer2['auth_token']}"}
         )
         
@@ -113,7 +113,7 @@ class TestPurchaseCreation:
         """Test that seller token cannot be used to make purchases"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
@@ -174,7 +174,7 @@ class TestPurchaseWorkflow:
         # Step 6: Make purchase
         purchase_response = client.post(
             "/buy/premium-towel",
-            json={"product_id": "premium-towel"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         

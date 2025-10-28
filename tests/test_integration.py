@@ -85,13 +85,13 @@ class TestAuthenticationSecurity:
         # Both should be able to purchase
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer1['auth_token']}"}
         )
         
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"product_id": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer2['auth_token']}"}
         )
         
@@ -362,7 +362,7 @@ class TestSalesStats:
         # Make a purchase
         client.post(
             "/buy/test-prod-1",
-            json={"product_id": "test-prod-1"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -417,7 +417,7 @@ class TestSalesStats:
             # Each buyer purchases product 0
             client.post(
                 "/buy/prod-0",
-                json={"product_id": "prod-0"},
+                json={"purchased_at": 0},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
@@ -428,7 +428,7 @@ class TestSalesStats:
         ).json()
         client.post(
             "/buy/prod-1",
-            json={"product_id": "prod-1"},
+            json={"purchased_at": 1},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -490,12 +490,12 @@ class TestSalesStats:
         # Buyer purchases from both sellers
         client.post(
             "/buy/seller1-prod",
-            json={"product_id": "seller1-prod"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         client.post(
             "/buy/seller2-prod",
-            json={"product_id": "seller2-prod"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -552,7 +552,7 @@ class TestSalesStats:
         )
         client.post(
             "/buy/test-prod",
-            json={"product_id": "test-prod"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -594,7 +594,7 @@ class TestSalesStats:
             # Purchase each product
             client.post(
                 f"/buy/prod-{i}",
-                json={"product_id": f"prod-{i}"},
+                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
         
@@ -607,10 +607,10 @@ class TestSalesStats:
         data = response.json()
         assert len(data["purchases"]) == 3
         
-        # Verify all purchases have timestamps
+        # Verify all purchases have day numbers
         for purchase in data["purchases"]:
             assert "purchased_at" in purchase
-            assert purchase["purchased_at"] is not None
+            assert isinstance(purchase["purchased_at"], int)
 
 
 class TestAPIHealth:

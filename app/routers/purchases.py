@@ -40,7 +40,8 @@ def create_purchase(
     # Create purchase record
     db_purchase = Purchase(
         product_id=product_id,
-        buyer_id=buyer.id
+        buyer_id=buyer.id,
+        purchased_at=purchase.purchased_at
     )
     db.add(db_purchase)
     db.commit()

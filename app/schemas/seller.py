@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import List
-from datetime import datetime
 
 
 class SellerResponse(BaseModel):
@@ -19,7 +18,7 @@ class PurchaseInfo(BaseModel):
     buyer_name: str
     price_in_cent: int
     currency: str
-    purchased_at: datetime
+    purchased_at: int
 
     class Config:
         from_attributes = True

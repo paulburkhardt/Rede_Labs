@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class PurchaseCreate(BaseModel):
-    product_id: str
+    purchased_at: int
 
 
 class PurchaseResponse(BaseModel):
