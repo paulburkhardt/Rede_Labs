@@ -2,12 +2,12 @@ from pydantic import BaseModel
 
 
 class PurchaseCreate(BaseModel):
-    productId: str
+    purchased_at: int
 
 
 class PurchaseResponse(BaseModel):
     id: str
-    productId: str
+    product_id: str
 
     class Config:
         from_attributes = True

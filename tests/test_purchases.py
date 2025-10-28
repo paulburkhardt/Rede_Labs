@@ -9,7 +9,7 @@ class TestPurchaseCreation:
         """Test successful product purchase"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -18,15 +18,15 @@ class TestPurchaseCreation:
         
         # Verify response structure
         assert "id" in data
-        assert "productId" in data
-        assert data["productId"] == sample_product['id']
+        assert "product_id" in data
+        assert data["product_id"] == sample_product['id']
         assert len(data["id"]) > 0
     
     def test_purchase_without_auth(self, client, sample_product):
         """Test that purchase fails without authentication"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']}
+            json={"purchased_at": 0}
         )
         
         assert response.status_code == 422  # Missing required header
@@ -35,7 +35,7 @@ class TestPurchaseCreation:
         """Test that purchase fails with invalid buyer token"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": "Bearer invalid-buyer-token"}
         )
         
@@ -46,7 +46,7 @@ class TestPurchaseCreation:
         """Test that purchasing nonexistent product fails"""
         response = client.post(
             "/buy/nonexistent-product-id",
-            json={"productId": "nonexistent-product-id"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -58,7 +58,7 @@ class TestPurchaseCreation:
         # First purchase
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert response1.status_code == 200
@@ -67,7 +67,7 @@ class TestPurchaseCreation:
         # Second purchase of same product
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 1},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert response2.status_code == 200
@@ -75,7 +75,7 @@ class TestPurchaseCreation:
         
         # Verify different purchase IDs
         assert purchase1["id"] != purchase2["id"]
-        assert purchase1["productId"] == purchase2["productId"]
+        assert purchase1["product_id"] == purchase2["product_id"]
     
     def test_multiple_buyers_purchase_same_product(self, client, sample_product):
         """Test that multiple buyers can purchase the same product"""
@@ -93,13 +93,13 @@ class TestPurchaseCreation:
         # Both purchase the same product
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer1['auth_token']}"}
         )
         
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer2['auth_token']}"}
         )
         
@@ -113,7 +113,7 @@ class TestPurchaseCreation:
         """Test that seller token cannot be used to make purchases"""
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"productId": sample_product['id']},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
@@ -130,7 +130,6 @@ class TestPurchaseWorkflow:
         # Step 1: Create seller
         org = client.post(
             "/createSeller",
-            json={"name": "Towel Emporium"}
         ).json()
         
         assert "auth_token" in org
@@ -140,12 +139,12 @@ class TestPurchaseWorkflow:
             "/product/premium-towel",
             json={
                 "name": "Premium Cotton Towel",
-                "shortDescription": "Luxurious and soft",
-                "longDescription": "Made from 100% Egyptian cotton",
+                "short_description": "Luxurious and soft",
+                "long_description": "Made from 100% Egyptian cotton",
                 "price": 3999,
                 "image": {
                     "url": "https://example.com/premium-towel.jpg",
-                    "alternativText": "White premium towel"
+                    "alternative_text": "White premium towel"
                 }
             },
             headers={"Authorization": f"Bearer {org['auth_token']}"}
@@ -162,7 +161,7 @@ class TestPurchaseWorkflow:
         # Step 4: Get product details
         product_details = client.get("/product/premium-towel").json()
         assert product_details["name"] == "Premium Cotton Towel"
-        assert product_details["priceInCent"] == 3999
+        assert product_details["price_in_cent"] == 3999
         
         # Step 5: Create buyer
         buyer = client.post(
@@ -175,13 +174,13 @@ class TestPurchaseWorkflow:
         # Step 6: Make purchase
         purchase_response = client.post(
             "/buy/premium-towel",
-            json={"productId": "premium-towel"},
+            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
         assert purchase_response.status_code == 200
         purchase = purchase_response.json()
-        assert purchase["productId"] == "premium-towel"
+        assert purchase["product_id"] == "premium-towel"
         assert "id" in purchase
     
     def test_buyer_cannot_update_products(self, client, sample_product, sample_buyer):

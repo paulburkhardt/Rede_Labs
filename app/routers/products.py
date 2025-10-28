@@ -7,7 +7,8 @@ from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
     ProductSearchResult,
-    ProductDetail
+    ProductDetail,
+    BatchRankingUpdate
 )
 from app.models.product import Product
 from app.models.seller import Seller
@@ -44,11 +45,11 @@ def create_product(
     db_product = Product(
         id=id,
         name=product.name,
-        short_description=product.shortDescription,
-        long_description=product.longDescription,
+        short_description=product.short_description,
+        long_description=product.long_description,
         price_in_cent=product.price,
         image_url=product.image.url,
-        image_alternative_text=product.image.alternativText,
+        image_alternative_text=product.image.alternative_text,
         seller_id=seller.id
     )
     db.add(db_product)
@@ -90,15 +91,17 @@ def update_product(
     # Update fields if provided
     if product.name is not None:
         db_product.name = product.name
-    if product.shortDescription is not None:
-        db_product.short_description = product.shortDescription
-    if product.longDescription is not None:
-        db_product.long_description = product.longDescription
+    if product.short_description is not None:
+        db_product.short_description = product.short_description
+    if product.long_description is not None:
+        db_product.long_description = product.long_description
     if product.price is not None:
         db_product.price_in_cent = product.price
     if product.image is not None:
         db_product.image_url = product.image.url
-        db_product.image_alternative_text = product.image.alternativText
+        db_product.image_alternative_text = product.image.alternative_text
+    if product.ranking is not None:
+        db_product.ranking = product.ranking
     
     db.commit()
     db.refresh(db_product)
@@ -119,24 +122,71 @@ def get_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Get seller information
-    seller = db.query(Seller).filter(Seller.id == db_product.seller_id).first()
-    
     # Format response
     return ProductDetail(
         id=db_product.id,
         name=db_product.name,
-        company={
-            "id": seller.id,
-            "name": ""  # Seller no longer has name attribute
-        },
-        priceInCent=db_product.price_in_cent,
+        seller_id=db_product.seller_id,
+        price_in_cent=db_product.price_in_cent,
         currency=db_product.currency,
         bestseller=db_product.bestseller,
-        shortDescription=db_product.short_description,
-        longDescription=db_product.long_description,
+        short_description=db_product.short_description,
+        long_description=db_product.long_description,
         image={
             "url": db_product.image_url or "",
-            "alternativText": db_product.image_alternative_text
+            "alternative_text": db_product.image_alternative_text
         }
     )
+
+# todo add security so only orchestration service can call this
+@router.patch("/{id}/ranking")
+def update_product_ranking(
+    id: str,
+    ranking: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Update the ranking of a product.
+    Used by the green agent to update product rankings based on sales performance.
+    """
+    # Get the product
+    db_product = db.query(Product).filter(Product.id == id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Update ranking
+    db_product.ranking = ranking
+    db.commit()
+    db.refresh(db_product)
+    
+    return {"message": "Product ranking updated successfully", "product_id": db_product.id, "ranking": ranking}
+
+
+# todo add security so only orchestration service can call this
+@router.patch("/batch/rankings")
+def batch_update_product_rankings(
+    batch_update: BatchRankingUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Batch update product rankings.
+    Used by the green agent to efficiently update multiple product rankings at once.
+    """
+    updated_count = 0
+    errors = []
+    
+    for item in batch_update.rankings:
+        db_product = db.query(Product).filter(Product.id == item.product_id).first()
+        if db_product:
+            db_product.ranking = item.ranking
+            updated_count += 1
+        else:
+            errors.append(f"Product {item.product_id} not found")
+    
+    db.commit()
+    
+    return {
+        "message": f"Updated {updated_count} product rankings",
+        "updated_count": updated_count,
+        "errors": errors if errors else None
+    }

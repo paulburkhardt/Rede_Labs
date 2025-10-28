@@ -22,6 +22,8 @@ def search_products(
     """
     # Search for products by name (case-insensitive partial match)
     products = db.query(Product).filter(
+        # todo: make sure you can find products that also include the keyword in
+        # short/long description and also lower case (fuzzy search)
         Product.name.ilike(f"%{q}%")
     ).order_by(
         Product.bestseller.desc(),  # Bestsellers first
@@ -31,23 +33,19 @@ def search_products(
     # Format results
     results = []
     for product in products:
-        # Get seller information for each product
-        seller = db.query(Seller).filter(Seller.id == product.seller_id).first()
         results.append(ProductSearchResult(
             id=product.id,
             name=product.name,
-            company={
-                "id": seller.id,
-                "name": ""  # Seller no longer has name attribute
-            },
-            priceInCent=product.price_in_cent,
+            seller_id=product.seller_id,
+            price_in_cent=product.price_in_cent,
             currency=product.currency,
             bestseller=product.bestseller,
-            shortDescription=product.short_description,
+            short_description=product.short_description,
             image={
                 "url": product.image_url or "",
-                "alternativText": product.image_alternative_text
-            }
+                "alternative_text": product.image_alternative_text
+            },
+            ranking=product.ranking
         ))
     
     return results
