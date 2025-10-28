@@ -1,8 +1,7 @@
 """
 Customer Simulation Configuration Loader
 
-This module provides utilities to load and work with customer simulation
-configuration, including persona distribution and customer counts.
+Simple utility to load customer population and persona distribution.
 """
 
 import random
@@ -22,7 +21,6 @@ class SimulationConfig:
             config_path: Path to simulation_config.toml. If None, uses default location.
         """
         if config_path is None:
-            # Default to the agents directory
             config_path = Path(__file__).parent / "simulation_config.toml"
         
         self.config = toml.load(config_path)
@@ -49,21 +47,6 @@ class SimulationConfig:
         """Get persona distribution percentages."""
         return self.config["persona_distribution"]
     
-    @property
-    def customers_per_run(self) -> int:
-        """Get number of customers to simulate per run."""
-        return self.config["simulation_settings"]["customers_per_run"]
-    
-    @property
-    def random_seed(self) -> int | None:
-        """Get random seed for reproducible simulations."""
-        return self.config["simulation_settings"].get("random_seed")
-    
-    @property
-    def use_weighted_sampling(self) -> bool:
-        """Check if weighted sampling should be used."""
-        return self.config["simulation_settings"]["use_weighted_sampling"]
-    
     def get_persona_counts(self) -> Dict[str, int]:
         """
         Calculate absolute customer counts for each persona based on distribution.
@@ -87,59 +70,19 @@ class SimulationConfig:
         
         return counts
     
-    def sample_customers(self, n: int = None) -> List[str]:
+    def sample_customers(self, n: int) -> List[str]:
         """
-        Sample customer personas for a simulation run.
-        
-        Args:
-            n: Number of customers to sample. If None, uses customers_per_run from config.
-            
-        Returns:
-            List of persona IDs representing sampled customers
-        """
-        if n is None:
-            n = self.customers_per_run
-        
-        # Set random seed if specified
-        if self.random_seed is not None:
-            random.seed(self.random_seed)
-        
-        if self.use_weighted_sampling:
-            # Weighted random sampling based on distribution
-            personas = list(self.persona_distribution.keys())
-            weights = list(self.persona_distribution.values())
-            return random.choices(personas, weights=weights, k=n)
-        else:
-            # Proportional sampling (maintain exact distribution)
-            return self._proportional_sample(n)
-    
-    def _proportional_sample(self, n: int) -> List[str]:
-        """
-        Sample customers maintaining exact proportions.
+        Sample customer personas using weighted random sampling.
         
         Args:
             n: Number of customers to sample
             
         Returns:
-            List of persona IDs with exact proportions
+            List of persona IDs representing sampled customers
         """
-        sample = []
-        remaining = n
-        
-        personas = list(self.persona_distribution.items())
-        for i, (persona_id, percentage) in enumerate(personas):
-            if i == len(personas) - 1:
-                # Last persona gets remaining slots
-                count = remaining
-            else:
-                count = int(n * (percentage / 100.0))
-                remaining -= count
-            
-            sample.extend([persona_id] * count)
-        
-        # Shuffle to randomize order
-        random.shuffle(sample)
-        return sample
+        personas = list(self.persona_distribution.keys())
+        weights = list(self.persona_distribution.values())
+        return random.choices(personas, weights=weights, k=n)
     
     def get_summary(self) -> Dict:
         """
@@ -152,11 +95,8 @@ class SimulationConfig:
         
         return {
             "total_customers": self.total_customers,
-            "customers_per_run": self.customers_per_run,
             "persona_distribution": self.persona_distribution,
-            "persona_counts": counts,
-            "random_seed": self.random_seed,
-            "use_weighted_sampling": self.use_weighted_sampling
+            "persona_counts": counts
         }
     
     def print_summary(self):
@@ -168,9 +108,6 @@ class SimulationConfig:
         print("CUSTOMER SIMULATION CONFIGURATION")
         print("=" * 60)
         print(f"\nTotal Customers: {summary['total_customers']:,}")
-        print(f"Customers per Run: {summary['customers_per_run']:,}")
-        print(f"Random Seed: {summary['random_seed']}")
-        print(f"Weighted Sampling: {summary['use_weighted_sampling']}")
         print("\n" + "-" * 60)
         print("PERSONA DISTRIBUTION")
         print("-" * 60)
@@ -216,4 +153,3 @@ if __name__ == "__main__":
     for persona_id, count in sorted(sample_counts.items()):
         percentage = (count / len(sample)) * 100
         print(f"{persona_id:25} {count:3} customers ({percentage:.1f}%)")
-
