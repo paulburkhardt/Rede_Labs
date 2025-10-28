@@ -1,0 +1,32 @@
+# ============================================================
+# Customer Simulation Configuration
+# ============================================================
+# This file controls the customer population and persona distribution
+# for marketplace simulations and agent benchmarking.
+
+[customer_population]
+# Total number of simulated customers in the marketplace
+total_customers = 10000
+
+# Customer persona distribution (must sum to 100%)
+# Based on CSI (Consumer Style Inventory) research distributions
+[persona_distribution]
+price_conscious = 22.0      # Price-Conscious Value Hunters
+quality_seeker = 18.0        # Perfectionist Quality Seekers
+confused_overchoice = 25.0   # Confused by Overchoice
+hedonistic_shopper = 20.0    # Recreational Hedonistic Shoppers
+brand_conscious = 15.0       # Brand Conscious Price Perceivers
+
+# Validation: percentages should sum to 100%
+# Current sum: 22 + 18 + 25 + 20 + 15 = 100%
+
+[simulation_settings]
+# How many customers to simulate per benchmark run (sample size)
+customers_per_run = 100
+
+# Random seed for reproducible simulations (set to null for random)
+random_seed = 42
+
+# Whether to use weighted random sampling based on distribution
+use_weighted_sampling = true
+
