@@ -164,9 +164,36 @@ async def create_participants(no_participants: int, route: str):
         return response.json()
 
 async def create_listings():
+    timeout_minutes = 2  # Timeout duration in minutes
+    timeout_seconds = timeout_minutes * 60
+    
     for seller in sellers:
-        prompt = "todo"
-        await send_message_to_agent(seller["url"], prompt)
+        prompt = """
+Call /createProduct to create a product.
+
+Response format:
+{
+    "product_id": "123", # id of the product you created
+}
+        """
+        try:
+            # Send message with timeout
+            await asyncio.wait_for(
+                send_message_to_agent(seller["url"], prompt),
+                timeout=timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            # Log timeout event
+            timeout_msg = f"Seller {seller['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            print(timeout_msg)
+            if battle_context:
+                record_battle_event(battle_context, timeout_msg)
+        except Exception as e:
+            # Log other errors but continue with other buyers
+            error_msg = f"Error communicating with seller {seller['id']}: {str(e)}"
+            print(error_msg)
+            if battle_context:
+                record_battle_event(battle_context, error_msg)
 
 async def create_ranking():
     # Get all products and assign random rankings
@@ -265,10 +292,37 @@ Response format:
 
 
 async def sellers_update_listings():
+    timeout_minutes = 2  # Timeout duration in minutes
+    timeout_seconds = timeout_minutes * 60
+    
     for seller in sellers:
-        prompt = "todo"
-        await send_message_to_agent(seller["url"], prompt)
-        
+        prompt = """
+Call /updateProduct to update your product.
+
+Response format:
+{
+    "product_id": "123", # id of the product you updated
+}
+        """
+        try:
+            # Send message with timeout
+            await asyncio.wait_for(
+                send_message_to_agent(seller["url"], prompt),
+                timeout=timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            # Log timeout event
+            timeout_msg = f"Seller {seller['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            print(timeout_msg)
+            if battle_context:
+                record_battle_event(battle_context, timeout_msg)
+        except Exception as e:
+            # Log other errors but continue with other sellers
+            error_msg = f"Error communicating with seller {seller['id']}: {str(e)}"
+            print(error_msg)
+            if battle_context:
+                record_battle_event(battle_context, error_msg)
+
 async def report_leaderboard():
     """Queries the purchase history and reports a leaderboard (total revenue,
     etc.) to AgentBeats."""
