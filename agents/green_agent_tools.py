@@ -15,6 +15,7 @@ import requests
 from agentbeats.utils.agents import send_message_to_agent
 from agentbeats.logging import record_battle_event, record_battle_result
 import random
+import asyncio
 
 
 
@@ -229,9 +230,39 @@ async def update_ranking():
 
 
 async def buyers_buy_products():
+    timeout_minutes = 2  # Timeout duration in minutes
+    timeout_seconds = timeout_minutes * 60
+    
     for buyer in buyers:
-        prompt = "todo"
-        await send_message_to_agent(buyer["url"], prompt)
+        prompt = """
+Call /search?q=keyword to find your product you want to buy. You can call /product/{id} to get more details about the product.
+
+Response even if you decided not to buy a product.
+
+Response format:
+{
+    "product_id": "123", # id of the product you bought, null if you decided not to buy a product
+    "decision": "buy" or "not buy"
+}
+        """
+        try:
+            # Send message with timeout
+            await asyncio.wait_for(
+                send_message_to_agent(buyer["url"], prompt),
+                timeout=timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            # Log timeout event
+            timeout_msg = f"Buyer {buyer['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            print(timeout_msg)
+            if battle_context:
+                record_battle_event(battle_context, timeout_msg)
+        except Exception as e:
+            # Log other errors but continue with other buyers
+            error_msg = f"Error communicating with buyer {buyer['id']}: {str(e)}"
+            print(error_msg)
+            if battle_context:
+                record_battle_event(battle_context, error_msg)
 
 
 async def create_revenue_report():
