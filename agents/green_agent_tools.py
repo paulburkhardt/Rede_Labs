@@ -326,4 +326,67 @@ Response format:
 async def report_leaderboard():
     """Queries the purchase history and reports a leaderboard (total revenue,
     etc.) to AgentBeats."""
-    pass
+    global battle_context
+    
+    if not battle_context:
+        print("Warning: Battle context not initialized")
+        return
+    
+    try:
+        # Step 1: Fetch leaderboard data from API
+        record_battle_event(battle_context, "Fetching leaderboard data")
+        response = requests.get(f"{api_url}/buy/stats/leaderboard")
+        
+        if response.status_code != 200:
+            error_msg = f"Failed to fetch leaderboard: {response.text}"
+            record_battle_event(battle_context, error_msg)
+            return
+        
+        leaderboard_data = response.json()
+        
+        # Step 2: Calculate winner and scores
+        winner = None
+        winner_score = 0
+        scores = {}
+        
+        for entry in leaderboard_data:
+            seller_id = entry["seller_id"]
+            revenue = entry["total_revenue_cents"]
+            purchase_count = entry["purchase_count"]
+            
+            # Score is based on total revenue
+            score = revenue
+            scores[seller_id] = {
+                "revenue_cents": revenue,
+                "revenue_dollars": entry["total_revenue_dollars"],
+                "purchase_count": purchase_count,
+                "score": score
+            }
+            
+            record_battle_event(
+                battle_context, 
+                f"Seller {seller_id}: ${entry['total_revenue_dollars']:.2f} revenue, {purchase_count} purchases"
+            )
+            
+            if score > winner_score:
+                winner_score = score
+                winner = seller_id
+        
+        # Step 3: Report final result
+        result_detail = {
+            "leaderboard": leaderboard_data,
+            "scores": scores,
+            "winner": winner,
+            "winner_revenue": winner_score / 100.0 if winner_score else 0
+        }
+        
+        record_battle_result(
+            battle_context,
+            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total revenue",
+            result_detail
+        )
+        
+    except Exception as e:
+        error_msg = f"Error reporting leaderboard: {str(e)}"
+        record_battle_event(battle_context, error_msg)
+        print(error_msg)

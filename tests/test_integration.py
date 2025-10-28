@@ -613,6 +613,358 @@ class TestSalesStats:
             assert isinstance(purchase["purchased_at"], int)
 
 
+class TestLeaderboard:
+    """Test leaderboard endpoint"""
+    
+    def test_leaderboard_no_sales(self, client):
+        """Test leaderboard with no sales returns sellers with zero revenue"""
+        # Create two sellers
+        seller1 = client.post("/createSeller").json()
+        seller2 = client.post("/createSeller").json()
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        
+        # All sellers should have zero revenue
+        for entry in data:
+            assert entry["purchase_count"] == 0
+            assert entry["total_revenue_cents"] == 0
+            assert entry["total_revenue_dollars"] == 0.0
+    
+    def test_leaderboard_single_seller_single_purchase(self, client, sample_seller, sample_buyer):
+        """Test leaderboard with a single seller and single purchase"""
+        # Create a product
+        client.post(
+            "/product/test-prod",
+            json={
+                "name": "Test Product",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 2500,
+                "image": {
+                    "url": "https://example.com/img.jpg",
+                    "alternative_text": "Test"
+                }
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        # Make a purchase
+        client.post(
+            "/buy/test-prod",
+            json={"purchased_at": 0},
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        entry = data[0]
+        assert entry["seller_id"] == sample_seller["id"]
+        assert entry["purchase_count"] == 1
+        assert entry["total_revenue_cents"] == 2500
+        assert entry["total_revenue_dollars"] == 25.0
+    
+    def test_leaderboard_multiple_sellers_sorted_by_revenue(self, client):
+        """Test leaderboard with multiple sellers sorted by total revenue"""
+        # Create three sellers
+        sellers = []
+        for i in range(3):
+            seller = client.post("/createSeller").json()
+            sellers.append(seller)
+        
+        # Create a buyer
+        buyer = client.post(
+            "/createBuyer",
+            json={"name": "Test Buyer"}
+        ).json()
+        
+        # Seller 0: 2 products at $10 and $20 = $30 total
+        client.post(
+            "/product/s0-p1",
+            json={
+                "name": "Product 1",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 1000,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
+        )
+        client.post(
+            "/product/s0-p2",
+            json={
+                "name": "Product 2",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 2000,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
+        )
+        client.post("/buy/s0-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+        client.post("/buy/s0-p2", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+        
+        # Seller 1: 1 product at $50 = $50 total (highest)
+        client.post(
+            "/product/s1-p1",
+            json={
+                "name": "Product 3",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 5000,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {sellers[1]['auth_token']}"}
+        )
+        client.post("/buy/s1-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+        
+        # Seller 2: 1 product at $5 = $5 total (lowest)
+        client.post(
+            "/product/s2-p1",
+            json={
+                "name": "Product 4",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 500,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {sellers[2]['auth_token']}"}
+        )
+        client.post("/buy/s2-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        
+        # Verify sorting by revenue (descending)
+        assert data[0]["seller_id"] == sellers[1]["id"]  # $50
+        assert data[0]["total_revenue_cents"] == 5000
+        assert data[0]["total_revenue_dollars"] == 50.0
+        assert data[0]["purchase_count"] == 1
+        
+        assert data[1]["seller_id"] == sellers[0]["id"]  # $30
+        assert data[1]["total_revenue_cents"] == 3000
+        assert data[1]["total_revenue_dollars"] == 30.0
+        assert data[1]["purchase_count"] == 2
+        
+        assert data[2]["seller_id"] == sellers[2]["id"]  # $5
+        assert data[2]["total_revenue_cents"] == 500
+        assert data[2]["total_revenue_dollars"] == 5.0
+        assert data[2]["purchase_count"] == 1
+    
+    def test_leaderboard_same_product_multiple_purchases(self, client, sample_seller):
+        """Test leaderboard when the same product is purchased multiple times"""
+        # Create a product
+        client.post(
+            "/product/popular-prod",
+            json={
+                "name": "Popular Product",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 1500,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        # Create three buyers and each purchases the same product
+        for i in range(3):
+            buyer = client.post(
+                "/createBuyer",
+                json={"name": f"Buyer {i}"}
+            ).json()
+            client.post(
+                "/buy/popular-prod",
+                json={"purchased_at": i},
+                headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+            )
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        entry = data[0]
+        assert entry["seller_id"] == sample_seller["id"]
+        assert entry["purchase_count"] == 3
+        assert entry["total_revenue_cents"] == 4500  # 1500 * 3
+        assert entry["total_revenue_dollars"] == 45.0
+    
+    def test_leaderboard_seller_with_no_purchases(self, client):
+        """Test leaderboard includes sellers with products but no purchases"""
+        # Create two sellers
+        seller1 = client.post("/createSeller").json()
+        seller2 = client.post("/createSeller").json()
+        
+        # Both create products
+        client.post(
+            "/product/s1-prod",
+            json={
+                "name": "Product 1",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 1000,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {seller1['auth_token']}"}
+        )
+        client.post(
+            "/product/s2-prod",
+            json={
+                "name": "Product 2",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 2000,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {seller2['auth_token']}"}
+        )
+        
+        # Only seller 1 gets a purchase
+        buyer = client.post(
+            "/createBuyer",
+            json={"name": "Test Buyer"}
+        ).json()
+        client.post(
+            "/buy/s1-prod",
+            json={"purchased_at": 0},
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        
+        # Find seller 1 and seller 2 in the results
+        seller1_data = next((s for s in data if s["seller_id"] == seller1["id"]), None)
+        seller2_data = next((s for s in data if s["seller_id"] == seller2["id"]), None)
+        
+        assert seller1_data is not None
+        assert seller1_data["total_revenue_cents"] == 1000
+        assert seller1_data["purchase_count"] == 1
+        
+        assert seller2_data is not None
+        assert seller2_data["total_revenue_cents"] == 0
+        assert seller2_data["purchase_count"] == 0
+        
+        # Seller 1 should be ranked higher (earlier in list) than seller 2
+        seller1_index = data.index(seller1_data)
+        seller2_index = data.index(seller2_data)
+        assert seller1_index < seller2_index
+    
+    def test_leaderboard_with_free_products(self, client, sample_seller, sample_buyer):
+        """Test leaderboard with products that have zero price"""
+        # Create a free product
+        client.post(
+            "/product/free-prod",
+            json={
+                "name": "Free Product",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 0,
+                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        # Purchase the free product
+        client.post(
+            "/buy/free-prod",
+            json={"purchased_at": 0},
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        entry = data[0]
+        assert entry["seller_id"] == sample_seller["id"]
+        assert entry["purchase_count"] == 1
+        assert entry["total_revenue_cents"] == 0
+        assert entry["total_revenue_dollars"] == 0.0
+    
+    def test_leaderboard_mixed_prices(self, client):
+        """Test leaderboard with various price points"""
+        # Create seller
+        seller = client.post("/createSeller").json()
+        buyer = client.post("/createBuyer", json={"name": "Test Buyer"}).json()
+        
+        # Create products with different prices
+        prices = [0, 99, 1000, 9999, 100000]  # $0, $0.99, $10, $99.99, $1000
+        for i, price in enumerate(prices):
+            client.post(
+                f"/product/prod-{i}",
+                json={
+                    "name": f"Product {i}",
+                    "short_description": "Test",
+                    "long_description": "Test",
+                    "price": price,
+                    "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                },
+                headers={"Authorization": f"Bearer {seller['auth_token']}"}
+            )
+            client.post(
+                f"/buy/prod-{i}",
+                json={"purchased_at": i},
+                headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+            )
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        entry = data[0]
+        expected_total = sum(prices)
+        assert entry["total_revenue_cents"] == expected_total
+        assert entry["total_revenue_dollars"] == expected_total / 100.0
+        assert entry["purchase_count"] == 5
+    
+    def test_leaderboard_response_structure(self, client, sample_seller):
+        """Test that leaderboard response has correct structure"""
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        
+        # Even with one seller, check structure
+        if len(data) > 0:
+            entry = data[0]
+            assert "seller_id" in entry
+            assert "purchase_count" in entry
+            assert "total_revenue_cents" in entry
+            assert "total_revenue_dollars" in entry
+            
+            assert isinstance(entry["seller_id"], str)
+            assert isinstance(entry["purchase_count"], int)
+            assert isinstance(entry["total_revenue_cents"], int)
+            assert isinstance(entry["total_revenue_dollars"], float)
+
+
 class TestAPIHealth:
     """Test API health and basic endpoints"""
     
