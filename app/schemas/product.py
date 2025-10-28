@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict
 
 
 class ImageSchema(BaseModel):
@@ -26,6 +26,7 @@ class ProductUpdate(BaseModel):
     longDescription: Optional[str] = None
     price: Optional[int] = None
     image: Optional[ImageSchema] = None
+    ranking: Optional[int] = None
 
 
 class ProductSearchResult(BaseModel):
@@ -37,6 +38,7 @@ class ProductSearchResult(BaseModel):
     bestseller: bool
     shortDescription: str
     image: ImageSchema
+    ranking: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -55,3 +57,12 @@ class ProductDetail(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProductRankingUpdate(BaseModel):
+    product_id: str
+    ranking: int
+
+
+class BatchRankingUpdate(BaseModel):
+    rankings: List[ProductRankingUpdate]

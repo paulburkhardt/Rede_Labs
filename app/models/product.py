@@ -17,6 +17,7 @@ class Product(Base):
     bestseller = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
     image_alternative_text = Column(String, nullable=True)
+    ranking = Column(Integer, nullable=True)
 
     # Foreign key to seller
     seller_id = Column(String, ForeignKey("sellers.id"), nullable=False)
