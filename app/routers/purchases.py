@@ -10,6 +10,7 @@ from app.models.buyer import Buyer
 
 router = APIRouter(prefix="/buy", tags=["purchases"])
 
+# todo: make sure api endpoints only get called if the phase where they are allowed (seller & buyer phase)
 
 @router.post("/{productId}", response_model=PurchaseResponse)
 def create_purchase(

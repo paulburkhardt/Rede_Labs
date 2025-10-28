@@ -22,6 +22,8 @@ def search_products(
     """
     # Search for products by name (case-insensitive partial match)
     products = db.query(Product).filter(
+        # todo: make sure you can find products that also include the keyword in
+        # short/long description and also lower case (fuzzy search)
         Product.name.ilike(f"%{q}%")
     ).order_by(
         Product.bestseller.desc(),  # Bestsellers first
