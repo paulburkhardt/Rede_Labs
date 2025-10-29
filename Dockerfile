@@ -9,24 +9,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
-
-# Copy dependency files and README (required by hatchling build)
-COPY pyproject.toml uv.lock* README.md ./
-
-# Install Python dependencies
-RUN uv sync --frozen --no-dev
+# Create an isolated virtual environment outside of /app (so bind mounts don't overwrite it)
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
 COPY . .
 
+# Install Python dependencies into the /opt/venv environment
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install .
+
 # Expose port
 EXPOSE 8000
 
-# Activate the virtual environment by prepending it to PATH
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Run the application
+# Run the application using Python from the venv
 CMD ["python", "run.py"]
