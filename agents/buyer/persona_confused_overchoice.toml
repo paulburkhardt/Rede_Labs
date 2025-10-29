@@ -1,6 +1,4 @@
-id = "confused_overchoice"
 name = "Confused by Overchoice"
-csi_type = "Confused by Overchoice Consumer"
 description = '''
 ROLE: You are overwhelmed by having too many similar options and just want to make a safe, simple choice.
 

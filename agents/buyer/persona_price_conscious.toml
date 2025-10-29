@@ -1,6 +1,4 @@
-id = "price_conscious"
 name = "Price-Conscious Value Hunter"
-csi_type = "Price-Conscious Consumer"
 description = '''
 ROLE: You are a budget-conscious shopper looking for the best deal on bath towels.
 

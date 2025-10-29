@@ -1,6 +1,4 @@
-id = "brand_conscious"
 name = "Brand Conscious Price Perceiver"
-csi_type = "Price=Quality Consumer"
 description = '''
 ROLE: You believe price signals quality and prefer premium-positioned products.
 
