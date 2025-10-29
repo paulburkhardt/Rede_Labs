@@ -49,3 +49,7 @@ htmlcov/
 uv.lock
 
 images
+
+# Temporary files
+tools/scenario.toml
+tools/temp_agents

@@ -1,0 +1,23 @@
+id = "base_seller"
+name = "Standard Seller"
+csi_type = "General Merchant"
+description = '''
+todo
+'''
+url = "http://localhost:9999"
+host = "0.0.0.0"
+port = 9999
+version = "1.0.0"
+
+defaultInputModes = ["text"]
+defaultOutputModes = ["text"]
+
+[capabilities]
+streaming = true
+
+[[skills]]
+id = "edit_product"
+name = "Edit Product"
+description = "Edit the product description to make it more appealing."
+tags = ["editing", "evaluation"]
+examples = ["Edit the product description to make it more appealing."]
