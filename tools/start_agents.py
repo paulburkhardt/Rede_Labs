@@ -323,7 +323,7 @@ def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
     if check_tmux_session_exists(tmux_session):
         print(f"\nError: tmux session '{tmux_session}' already exists!")
         print(f"Please stop the existing session first:")
-        print(f"  python tools/kill_agents.py")
+        print(f"  uv run tools/kill_agents.py")
         print(f"\nOr attach to the existing session:")
         print(f"  tmux attach -t {tmux_session}")
         sys.exit(1)
@@ -533,7 +533,7 @@ Examples:
     print(f"\nUseful commands:")
     print(f"  Attach to session:  tmux attach -t {args.tmux_session}")
     print(f"  List sessions:      tmux ls")
-    print(f"  Stop agents:        python tools/kill_agents.py")
+    print(f"  Stop agents:        uv run tools/kill_agents.py")
     print(f"\nTmux navigation:")
     print(f"  Switch panes:       Ctrl+B then arrow keys")
     print(f"  Scroll mode:        Ctrl+B then [ (press q to exit)")

@@ -103,16 +103,16 @@ def main():
         epilog="""
 Examples:
   # Stop agents with default session name
-  python tools/kill_agents.py
+  uv run tools/kill_agents.py
   
   # Stop agents with custom session name
-  python tools/kill_agents.py --tmux-session my-session
+  uv run tools/kill_agents.py --tmux-session my-session
   
   # List all tmux sessions
-  python tools/kill_agents.py --list
+  uv run tools/kill_agents.py --list
   
   # Force cleanup even if session doesn't exist
-  python tools/kill_agents.py --force
+  uv run tools/kill_agents.py --force
         """
     )
     
@@ -176,7 +176,7 @@ Examples:
             for session in sessions:
                 print(f"  - {session}")
             print("\nTo kill a specific session, use:")
-            print(f"  python tools/kill_agents.py --tmux-session SESSION_NAME")
+            print(f"  uv run tools/kill_agents.py --tmux-session SESSION_NAME")
         else:
             print("\nNo active tmux sessions found.")
         
@@ -236,7 +236,7 @@ Examples:
     
     print("All agents have been stopped.")
     print("To start agents again, run:")
-    print("  python tools/start_agents.py --only-white-agents")
+    print("  uv run tools/start_agents.py --only-white-agents")
     print()
 
 
