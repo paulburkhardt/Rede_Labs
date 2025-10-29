@@ -16,6 +16,8 @@ from agentbeats.utils.agents import send_message_to_agent
 from agentbeats.logging import record_battle_event, record_battle_result
 import random
 import asyncio
+import toml
+from pathlib import Path
 
 
 
@@ -122,6 +124,9 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     try:
         await create_sellers(seller_infos)
         await create_buyer()
+        print("🌴 Created sellers and buyer")
+        print(sellers)
+        print(buyers)
 
         # Day 1: Create listings
         await create_listings()
@@ -143,11 +148,54 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     
 
 async def create_sellers(seller_infos: list):
-    await create_participants(len(seller_infos), "/createSeller")
-
+    for seller_info in seller_infos:
+        # todo: add super admin auth token
+        response = requests.post(
+            api_url + "/createSeller",
+        )
+        if response.status_code != 200:
+            raise Exception(f"Failed to create seller: {response.text}")
+        
+        json = response.json()
+        id = json.get("id")
+        token = json.get("auth_token")
+        sellers.append(Seller(id=id, url=seller_info.get("agent_url"), token=token))
 
 async def create_buyer():
-    await create_participants(5, "/createBuyer")
+    """Create buyers based on configuration from tools/scenario.toml"""
+    # Load scenario configuration
+    scenario_path = Path(__file__).parent.parent.parent / "tools" / "scenario.toml"
+    
+    if not scenario_path.exists():
+        raise Exception(f"Scenario file not found at {scenario_path}")
+    
+    scenario_config = toml.load(scenario_path)
+    
+    # Filter agents where card filename starts with "buyer_"
+    buyer_agents = [
+        agent for agent in scenario_config.get("agents", [])
+        if Path(agent["card"]).name.startswith("buyer_")
+    ]
+    
+    # Create buyers based on the configuration
+    for buyer_agent in buyer_agents:
+        agent_host = buyer_agent.get("agent_host")
+        agent_port = buyer_agent.get("agent_port")
+        
+        if not agent_port:
+            raise Exception(f"No agent_port found for buyer agent: {buyer_agent.get('name')}")
+        
+        # Create buyer via API
+        response = requests.post(api_url + "/createBuyer")
+        
+        if response.status_code != 200:
+            raise Exception(f"Failed to create buyer: {response.text}")
+        
+        buyer_data = response.json()
+        # Store buyer with URL constructed from agent configuration
+        # todo: is that a problem that the buyer has to run local (because of the http://)?
+        url = f"http://{agent_host}:{agent_port}"
+        buyers.append(Buyer(id=buyer_data.get("id"), url=url, token=buyer_data.get("auth_token")))
 
 async def create_participants(no_participants: int, route: str):
     for i in range(no_participants):
