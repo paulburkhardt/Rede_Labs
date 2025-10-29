@@ -25,5 +25,8 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
+# Activate the virtual environment by prepending it to PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
 # Run the application
-CMD ["uv", "run", "python", "run.py"]
+CMD ["python", "run.py"]
