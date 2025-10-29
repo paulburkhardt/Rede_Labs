@@ -6,6 +6,7 @@ from app.database import get_db
 from app.schemas.product import ProductSearchResult
 from app.models.product import Product
 from app.models.seller import Seller
+from app.models.image import Image
 
 router = APIRouter(prefix="", tags=["search"])
 
@@ -33,6 +34,10 @@ def search_products(
     # Format results
     results = []
     for product in products:
+        image_data = {
+            "base64": product.image.base64 if product.image else "",
+            "image_description": product.image.image_description if product.image else None
+        }
         results.append(ProductSearchResult(
             id=product.id,
             name=product.name,
@@ -41,10 +46,7 @@ def search_products(
             currency=product.currency,
             bestseller=product.bestseller,
             short_description=product.short_description,
-            image={
-                "url": product.image_url or "",
-                "alternative_text": product.image_alternative_text
-            },
+            image=image_data,
             ranking=product.ranking
         ))
     

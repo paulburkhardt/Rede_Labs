@@ -15,12 +15,12 @@ class Product(Base):
     price_in_cent = Column(Integer, nullable=False)
     currency = Column(String, default="USD")
     bestseller = Column(Boolean, default=False)
-    image_url = Column(String, nullable=True)
-    image_alternative_text = Column(String, nullable=True)
     ranking = Column(Integer, nullable=True)
 
-    # Foreign key to seller
+    # Foreign keys
     seller_id = Column(String, ForeignKey("sellers.id"), nullable=False)
+    image_id = Column(String, ForeignKey("images.id"), nullable=True)
 
-    # Relationship
+    # Relationships
     seller = relationship("Seller", back_populates="products")
+    image = relationship("Image", back_populates="products")

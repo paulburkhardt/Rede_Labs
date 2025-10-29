@@ -1,5 +1,6 @@
 """Integration tests for product endpoints"""
 import pytest
+from tests.conftest import MOCK_BASE64_IMAGE
 
 
 class TestProductCreation:
@@ -13,8 +14,8 @@ class TestProductCreation:
             "long_description": "Made from 100% organic cotton, perfect for daily use",
             "price": 2999,
             "image": {
-                "url": "https://example.com/towel.jpg",
-                "alternative_text": "White towel on shelf"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -37,8 +38,8 @@ class TestProductCreation:
             "long_description": "Test description",
             "price": 1000,
             "image": {
-                "url": "https://example.com/test.jpg",
-                "alternative_text": "Test"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -57,8 +58,8 @@ class TestProductCreation:
             "long_description": "Test description",
             "price": 1000,
             "image": {
-                "url": "https://example.com/test.jpg",
-                "alternative_text": "Test"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -79,8 +80,8 @@ class TestProductCreation:
             "long_description": "Description",
             "price": 1000,
             "image": {
-                "url": "https://example.com/1.jpg",
-                "alternative_text": "Image 1"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -262,8 +263,8 @@ class TestProductRanking:
                 "long_description": f"Long description {i}",
                 "price": 1000 + i * 100,
                 "image": {
-                    "url": f"https://example.com/product{i}.jpg",
-                    "alternative_text": f"Product {i}"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": f"Product {i}"
                 }
             }
             create_response = client.post(
@@ -364,8 +365,8 @@ class TestProductRanking:
             "long_description": "Test ranking persistence",
             "price": 1500,
             "image": {
-                "url": "https://example.com/ranked.jpg",
-                "alternative_text": "Ranked"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -427,7 +428,7 @@ class TestRankingWithPurchaseStats:
             "short_description": "Best seller",
             "long_description": "This will have more purchases",
             "price": 1000,
-            "image": {"url": "https://example.com/p1.jpg", "alternative_text": "P1"}
+            "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
         }
         client.post(
             "/product/popular-1",
@@ -440,7 +441,7 @@ class TestRankingWithPurchaseStats:
             "short_description": "Fewer sales",
             "long_description": "This will have fewer purchases",
             "price": 1000,
-            "image": {"url": "https://example.com/p2.jpg", "alternative_text": "P2"}
+            "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
         }
         client.post(
             "/product/unpopular-1",

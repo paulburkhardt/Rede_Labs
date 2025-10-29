@@ -12,6 +12,7 @@ from app.schemas.product import (
 )
 from app.models.product import Product
 from app.models.seller import Seller
+from app.models.image import Image
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -41,6 +42,23 @@ def create_product(
     if existing_product:
         raise HTTPException(status_code=400, detail="Product with this ID already exists")
     
+    # Check if an image with the same base64 already exists (deduplication)
+    existing_image = db.query(Image).filter(Image.base64 == product.image.base64).first()
+    
+    if existing_image:
+        # Reuse existing image
+        image_id = existing_image.id
+    else:
+        # Create new image
+        db_image = Image(
+            base64=product.image.base64,
+            image_description=product.image.image_description
+        )
+        db.add(db_image)
+        db.commit()
+        db.refresh(db_image)
+        image_id = db_image.id
+    
     # Create new product
     db_product = Product(
         id=id,
@@ -48,8 +66,7 @@ def create_product(
         short_description=product.short_description,
         long_description=product.long_description,
         price_in_cent=product.price,
-        image_url=product.image.url,
-        image_alternative_text=product.image.alternative_text,
+        image_id=image_id,
         seller_id=seller.id
     )
     db.add(db_product)
@@ -98,8 +115,22 @@ def update_product(
     if product.price is not None:
         db_product.price_in_cent = product.price
     if product.image is not None:
-        db_product.image_url = product.image.url
-        db_product.image_alternative_text = product.image.alternative_text
+        # Check if an image with the same base64 already exists (deduplication)
+        existing_image = db.query(Image).filter(Image.base64 == product.image.base64).first()
+        
+        if existing_image:
+            # Reuse existing image
+            db_product.image_id = existing_image.id
+        else:
+            # Create new image
+            db_image = Image(
+                base64=product.image.base64,
+                image_description=product.image.image_description
+            )
+            db.add(db_image)
+            db.commit()
+            db.refresh(db_image)
+            db_product.image_id = db_image.id
     if product.ranking is not None:
         db_product.ranking = product.ranking
     
@@ -123,6 +154,11 @@ def get_product(
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Format response
+    image_data = {
+        "base64": db_product.image.base64 if db_product.image else "",
+        "image_description": db_product.image.image_description if db_product.image else None
+    }
+    
     return ProductDetail(
         id=db_product.id,
         name=db_product.name,
@@ -132,10 +168,7 @@ def get_product(
         bestseller=db_product.bestseller,
         short_description=db_product.short_description,
         long_description=db_product.long_description,
-        image={
-            "url": db_product.image_url or "",
-            "alternative_text": db_product.image_alternative_text
-        }
+        image=image_data
     )
 
 # todo add security so only orchestration service can call this
