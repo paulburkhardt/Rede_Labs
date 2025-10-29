@@ -117,14 +117,18 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     global battle_context, sellers, buyers
 
     if not battle_context:
-        record_battle_event(battle_context, "Battle orchestration started")
         return "Error: Battle context not initialized"
 
+    record_battle_event(battle_context, "Battle orchestration started")
+
     days: int = 5  # Total days in the battle
+    print("🌴 Battle orchestration started")
     try:
+        print("🌴 Creating sellers and buyer")
         await create_sellers(seller_infos)
+        print("🌴 Created sellers")
         await create_buyer()
-        print("🌴 Created sellers and buyer")
+        print("🌴 Created buyer")
         print(sellers)
         print(buyers)
 
@@ -150,9 +154,12 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
 async def create_sellers(seller_infos: list):
     for seller_info in seller_infos:
         # todo: add super admin auth token
+        print("🥥 Creating seller")
+        print(api_url + "/createSeller"),
         response = requests.post(
             api_url + "/createSeller",
         )
+        print("🥥 Created seller")
         if response.status_code != 200:
             raise Exception(f"Failed to create seller: {response.text}")
         
