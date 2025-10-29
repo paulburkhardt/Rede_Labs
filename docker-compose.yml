@@ -18,5 +18,23 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marketplace_backend
+    environment:
+      DATABASE_URL: postgresql://marketplace_user:marketplace_pass@postgres:5432/marketplace_db
+      HOST: 0.0.0.0
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: python run.py
+
 volumes:
   postgres_data:

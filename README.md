@@ -32,50 +32,65 @@ Rede_Labs/
 │   ├── env.py
 │   └── script.py.mako
 ├── pyproject.toml           # Project dependencies (uv)
-├── docker-compose.yml       # PostgreSQL container
+├── docker-compose.yml       # PostgreSQL + Backend containers
+├── Dockerfile               # Backend container definition
 ├── run.py                   # Development server runner
 └── README.md
 ```
 
 ## Prerequisites
 
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) package manager
-- Docker and Docker Compose (for PostgreSQL)
+- Docker and Docker Compose
+- (Optional) Python 3.11+ and [uv](https://github.com/astral-sh/uv) for local development
 
 ## Setup Instructions
 
-### 1. Install uv
+### Option 1: Docker (Recommended)
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-### 2. Clone and Setup
-
-```bash
-cd Rede_Labs
-```
-
-### 3. Install Dependencies
-
-```bash
-uv sync
-```
-
-### 4. Start PostgreSQL Database
+#### 1. Start All Services
 
 ```bash
 docker-compose up -d
 ```
 
-This will start a PostgreSQL container with:
-- **User**: `marketplace_user`
-- **Password**: `marketplace_pass`
-- **Database**: `marketplace_db`
-- **Port**: `5432`
+This will start:
+- **PostgreSQL** container:
+  - User: `marketplace_user`
+  - Password: `marketplace_pass`
+  - Database: `marketplace_db`
+  - Port: `5432`
+- **Backend API** container:
+  - FastAPI application
+  - Port: `8000`
+  - Auto-reloads on code changes
 
-### 5. Configure Environment
+#### 2. Run Database Migrations
+
+```bash
+docker-compose exec backend alembic upgrade head
+```
+
+### Option 2: Local Development
+
+#### 1. Install uv
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### 2. Install Dependencies
+
+```bash
+uv sync
+```
+
+#### 3. Start PostgreSQL Only
+
+```bash
+docker-compose up -d postgres
+```
+
+#### 4. Configure Environment
 
 Copy the example environment file and adjust if needed:
 
@@ -83,17 +98,13 @@ Copy the example environment file and adjust if needed:
 cp .env.example .env
 ```
 
-### 6. Run Database Migrations
+#### 5. Run Database Migrations
 
 ```bash
-# Create initial migration
-uv run alembic revision --autogenerate -m "Initial migration"
-
-# Apply migrations
 uv run alembic upgrade head
 ```
 
-### 7. Start the Development Server
+#### 6. Start the Development Server
 
 ```bash
 uv run python run.py
@@ -175,15 +186,18 @@ uv run alembic downgrade -1
 uv run alembic history
 ```
 
-### Stop Database
+### Stop Services
 
 ```bash
+# Stop all services
 docker-compose down
-```
 
-To remove data volumes:
-```bash
+# Stop and remove data volumes
 docker-compose down -v
+
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f postgres
 ```
 
 ## Testing
