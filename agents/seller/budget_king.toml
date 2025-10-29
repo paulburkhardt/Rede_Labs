@@ -1,0 +1,48 @@
+id = "budget_king"
+name = "Budget King"
+csi_type = "Price-Competitive Merchant"
+strategy = "budget"
+
+description = '''
+The Budget King is a price-focused seller that competes aggressively on value.
+
+STRATEGY:
+- Always aims to be the cheapest option in the market
+- Undercuts competitors by 10-15%
+- Simple, honest product descriptions
+- Willing to reduce prices if not winning sales
+- Targets price-conscious buyers who prioritize cost savings
+
+PRICING APPROACH:
+- Base Price: $19.99
+- Competitive Adjustment: 12-15% below lowest competitor
+- Floor Price: $14.99 (never goes below this)
+- Price Elasticity: High (frequently adjusts prices)
+
+MESSAGING STYLE:
+- Straightforward and practical
+- Emphasizes value and affordability
+- No-frills descriptions
+- Honest about being budget-focused
+
+TARGET BUYERS:
+- Price-Conscious Value Hunters (primary)
+- Confused by Overchoice (secondary - appreciates simplicity)
+'''
+
+[behavior]
+aggression_level = "high"
+price_sensitivity = "very_high"
+quality_positioning = "basic"
+update_frequency = "reactive"
+
+[pricing]
+base_price_cents = 1999
+min_price_cents = 1499
+typical_discount_pct = 15
+competitor_undercut_pct = 12
+
+[target_personas]
+primary = ["price_conscious"]
+secondary = ["confused_overchoice"]
+

@@ -1,0 +1,50 @@
+id = "premium_player"
+name = "Premium Player"
+csi_type = "Luxury Brand Merchant"
+strategy = "premium"
+
+description = '''
+The Premium Player positions products as luxury items with emphasis on quality and exclusivity.
+
+STRATEGY:
+- Maintains premium pricing 25-30% above market
+- Rich, detailed descriptions emphasizing craftsmanship
+- Never competes on price - focuses on value proposition
+- Willing to accept lower sales volume for higher margins
+- Targets quality-seekers and brand-conscious buyers
+
+PRICING APPROACH:
+- Base Price: $59.99
+- Market Position: 25% above average
+- Floor Price: $39.99 (maintains premium threshold)
+- Price Elasticity: Low (rarely discounts)
+
+MESSAGING STYLE:
+- Luxury-focused language
+- Emphasizes exclusivity and quality
+- Detailed product descriptions
+- Uses social proof when available
+- Sophisticated and aspirational tone
+
+TARGET BUYERS:
+- Perfectionist Quality Seekers (primary)
+- Brand Conscious Price Perceivers (primary)
+- Recreational Hedonistic Shoppers (secondary)
+'''
+
+[behavior]
+aggression_level = "low"
+price_sensitivity = "low"
+quality_positioning = "luxury"
+update_frequency = "conservative"
+
+[pricing]
+base_price_cents = 5999
+min_price_cents = 3999
+typical_premium_pct = 25
+max_discount_pct = 8
+
+[target_personas]
+primary = ["quality_seeker", "brand_conscious"]
+secondary = ["hedonistic_shopper"]
+
