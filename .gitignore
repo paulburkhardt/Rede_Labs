@@ -47,3 +47,5 @@ htmlcov/
 # UV
 .uv/
 uv.lock
+
+images

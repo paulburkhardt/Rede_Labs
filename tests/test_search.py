@@ -1,5 +1,6 @@
 """Integration tests for search endpoint"""
 import pytest
+from tests.conftest import MOCK_BASE64_IMAGE
 
 
 class TestProductSearch:
@@ -23,8 +24,8 @@ class TestProductSearch:
                     "long_description": "Test description",
                     "price": prod["price"],
                     "image": {
-                        "url": "https://example.com/img.jpg",
-                        "alternative_text": "Test image"
+                        "base64": MOCK_BASE64_IMAGE,
+                        "image_description": "Test"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -51,8 +52,8 @@ class TestProductSearch:
                 "long_description": "Test",
                 "price": 1999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -75,8 +76,8 @@ class TestProductSearch:
                 "long_description": "Test",
                 "price": 1999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -121,8 +122,8 @@ class TestProductSearch:
                 "long_description": "Regular",
                 "price": 1999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -138,8 +139,8 @@ class TestProductSearch:
                 "long_description": "Amazing",
                 "price": 2999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -174,4 +175,5 @@ class TestProductSearch:
             assert field in result
         
         # Verify nested structures
-        assert "url" in result["image"]
+        assert "base64" in result["image"]
+        assert "image_description" in result["image"]

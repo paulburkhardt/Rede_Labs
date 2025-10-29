@@ -1,4 +1,5 @@
 import pytest
+import base64
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -6,6 +7,17 @@ from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.database import Base, get_db
 from app.config import settings
+
+# Mock base64 image (1x1 transparent PNG)
+MOCK_BASE64_IMAGE = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+
+def mock_image(description="Test image"):
+    """Helper function to create mock image data for tests"""
+    return {
+        "base64": MOCK_BASE64_IMAGE,
+        "image_description": description
+    }
 
 # Create a test database URL (using same DB but will clear it)
 TEST_DATABASE_URL = settings.database_url
@@ -76,8 +88,8 @@ def sample_product(client, sample_seller):
         "long_description": "This is a detailed description of the test product",
         "price": 1999,
         "image": {
-            "url": "https://example.com/image.jpg",
-            "alternative_text": "Test product image"
+            "base64": MOCK_BASE64_IMAGE,
+            "image_description": "Test product image"
         }
     }
     

@@ -1,5 +1,6 @@
 """Integration tests for purchase endpoint"""
 import pytest
+from tests.conftest import MOCK_BASE64_IMAGE
 
 
 class TestPurchaseCreation:
@@ -143,8 +144,8 @@ class TestPurchaseWorkflow:
                 "long_description": "Made from 100% Egyptian cotton",
                 "price": 3999,
                 "image": {
-                    "url": "https://example.com/premium-towel.jpg",
-                    "alternative_text": "White premium towel"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {org['auth_token']}"}

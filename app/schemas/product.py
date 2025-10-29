@@ -3,8 +3,8 @@ from typing import Optional, List, Dict
 
 
 class ImageSchema(BaseModel):
-    url: str
-    alternative_text: Optional[str] = None
+    base64: str
+    image_description: Optional[str] = None
 
 
 class CompanySchema(BaseModel):

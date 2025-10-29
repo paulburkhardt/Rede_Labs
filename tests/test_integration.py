@@ -1,5 +1,6 @@
 """Integration tests for complex scenarios and edge cases"""
 import pytest
+from tests.conftest import MOCK_BASE64_IMAGE
 
 
 class TestAuthenticationSecurity:
@@ -13,8 +14,8 @@ class TestAuthenticationSecurity:
             "long_description": "Test",
             "price": 1999,
             "image": {
-                "url": "https://example.com/img.jpg",
-                "alternative_text": "Test"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -54,8 +55,8 @@ class TestAuthenticationSecurity:
                 "long_description": "Test",
                 "price": 1999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
@@ -121,8 +122,8 @@ class TestMultipleSellersAndProducts:
             "long_description": "Very nice towel",
             "price": 1999,
             "image": {
-                "url": "https://example.com/towel.jpg",
-                "alternative_text": "Towel"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         
@@ -161,8 +162,8 @@ class TestMultipleSellersAndProducts:
                     "long_description": f"Long description {i}",
                     "price": 1000 + (i * 100),
                     "image": {
-                        "url": f"https://example.com/img{i}.jpg",
-                        "alternative_text": f"Image {i}"
+                        "base64": MOCK_BASE64_IMAGE,
+                        "image_description": f"Image {i}"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -258,8 +259,8 @@ class TestEdgeCases:
                 "long_description": "Free product",
                 "price": 0,
                 "image": {
-                    "url": "https://example.com/free.jpg",
-                    "alternative_text": "Free"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -283,8 +284,8 @@ class TestEdgeCases:
                 "long_description": long_text,
                 "price": 1999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -303,8 +304,8 @@ class TestEdgeCases:
                 "long_description": "Test",
                 "price": 1999,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -349,8 +350,8 @@ class TestSalesStats:
             "long_description": "Test",
             "price": 2500,
             "image": {
-                "url": "https://example.com/img.jpg",
-                "alternative_text": "Test"
+                "base64": MOCK_BASE64_IMAGE,
+                "image_description": "Test"
             }
         }
         client.post(
@@ -400,8 +401,8 @@ class TestSalesStats:
                     "long_description": "Test",
                     "price": 1000 * (i + 1),
                     "image": {
-                        "url": "https://example.com/img.jpg",
-                        "alternative_text": "Test"
+                        "base64": MOCK_BASE64_IMAGE,
+                        "image_description": "Test"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -459,8 +460,8 @@ class TestSalesStats:
                 "long_description": "Test",
                 "price": 1000,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
@@ -474,8 +475,8 @@ class TestSalesStats:
                 "long_description": "Test",
                 "price": 2000,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
@@ -544,8 +545,8 @@ class TestSalesStats:
                 "long_description": "Test",
                 "price": 1500,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -584,8 +585,8 @@ class TestSalesStats:
                     "long_description": "Test",
                     "price": 1000 * (i + 1),
                     "image": {
-                        "url": "https://example.com/img.jpg",
-                        "alternative_text": "Test"
+                        "base64": MOCK_BASE64_IMAGE,
+                        "image_description": "Test"
                     }
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -646,8 +647,8 @@ class TestLeaderboard:
                 "long_description": "Test",
                 "price": 2500,
                 "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
+                    "base64": MOCK_BASE64_IMAGE,
+                    "image_description": "Test"
                 }
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
@@ -695,7 +696,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
@@ -706,7 +707,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
@@ -721,7 +722,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 5000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {sellers[1]['auth_token']}"}
         )
@@ -735,7 +736,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 500,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {sellers[2]['auth_token']}"}
         )
@@ -774,7 +775,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1500,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -818,7 +819,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -829,7 +830,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
         )
@@ -879,7 +880,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 0,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -920,7 +921,7 @@ class TestLeaderboard:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": price,
-                    "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                    "image": {"base64": MOCK_BASE64_IMAGE, "image_description": "Test"}
                 },
                 headers={"Authorization": f"Bearer {seller['auth_token']}"}
             )
