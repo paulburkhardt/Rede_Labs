@@ -409,6 +409,32 @@ def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
         print(f"  tmux attach -t {tmux_session}")
         sys.exit(1)
     
+    # Load environment variables from .env file
+    env_file = PROJECT_ROOT / ".env"
+    env_vars = os.environ.copy()
+    
+    if env_file.exists():
+        print(f"Loading environment variables from: {env_file}")
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                # Skip empty lines and comments
+                if line and not line.startswith('#'):
+                    # Handle both KEY=VALUE and KEY="VALUE" formats
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        # Remove quotes if present
+                        if value.startswith('"') and value.endswith('"'):
+                            value = value[1:-1]
+                        elif value.startswith("'") and value.endswith("'"):
+                            value = value[1:-1]
+                        env_vars[key] = value
+        print(f"Loaded environment variables from .env file")
+    else:
+        print(f"Warning: .env file not found at {env_file}")
+    
     # Find agentbeats - prefer venv version
     agentbeats_cmd = "agentbeats"
     venv_agentbeats = PROJECT_ROOT / "venv" / "bin" / "agentbeats"
@@ -429,7 +455,7 @@ def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
     print(f"Command: {' '.join(cmd)}\n")
     
     try:
-        subprocess.run(cmd, cwd=PROJECT_ROOT, check=True)
+        subprocess.run(cmd, cwd=PROJECT_ROOT, env=env_vars, check=True)
     except subprocess.CalledProcessError as e:
         print(f"\nError starting agents: {e}")
         sys.exit(1)
