@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.schemas.product import ProductSearchResult
+from app.schemas.product import ProductSearchResult, ImageDescriptionSchema
 from app.models.product import Product
 from app.models.seller import Seller
 from app.models.image import Image
@@ -31,13 +31,17 @@ def search_products(
         Product.name  # Then alphabetically
     ).all()
     
-    # Format results
+    # Format results with image descriptions (no base64)
     results = []
     for product in products:
-        image_data = {
-            "base64": product.image.base64 if product.image else "",
-            "image_description": product.image.image_description if product.image else None
-        }
+        images_data = [
+            ImageDescriptionSchema(
+                id=img.id,
+                image_description=img.image_description,
+                product_number=img.product_number
+            )
+            for img in product.images
+        ]
         results.append(ProductSearchResult(
             id=product.id,
             name=product.name,
@@ -46,7 +50,7 @@ def search_products(
             currency=product.currency,
             bestseller=product.bestseller,
             short_description=product.short_description,
-            image=image_data,
+            images=images_data,
             ranking=product.ranking
         ))
     

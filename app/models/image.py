@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 import uuid
 
 from app.database import Base
+from app.models.product_image import product_images
 
 
 class Image(Base):
@@ -13,5 +14,5 @@ class Image(Base):
     image_description = Column(String, nullable=True)
     product_number = Column(String, nullable=True)  # Product number from folder name (e.g., "01", "02")
 
-    # Relationship - one image can be used by multiple products
-    products = relationship("Product", back_populates="image")
+    # Relationship - one image can be used by multiple products (many-to-many)
+    products = relationship("Product", secondary=product_images, back_populates="images")
