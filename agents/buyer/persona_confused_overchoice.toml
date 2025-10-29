@@ -27,4 +27,20 @@ DECISION CRITERIA:
 
 TASK: You will receive a list of bath towel products. Don't overthink it - just pick ONE that feels like a safe, reasonable choice. Explain in 1-2 simple sentences.
 '''
+url = "http://localhost:9999"
+host = "0.0.0.0"
+port = 9999
+version = "1.0.0"
 
+defaultInputModes = ["text"]
+defaultOutputModes = ["text"]
+
+[capabilities]
+streaming = true
+
+[[skills]]
+id = "choose_product"
+name = "Choose Product"
+description = "Choose the best product based on price and positioning."
+tags = ["buying", "evaluation"]
+examples = ["Choose the best product based on price and positioning."]
