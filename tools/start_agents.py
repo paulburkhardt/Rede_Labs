@@ -132,6 +132,48 @@ def create_temp_agent_card(source_card: Path, agent_port: int, launcher_port: in
     return temp_card_path
 
 
+def find_tools_file(agent_folder: Path, agent_id: str = None) -> Path:
+    """
+    Find the appropriate tools file for an agent.
+    
+    Logic:
+    1. Look for shared_*.py in the folder (applies to all agents)
+    2. If agent_id is provided, look for {agent_id}_tools.py (overrides shared)
+    
+    Args:
+        agent_folder: Path to the agent folder (e.g., agents/buyer)
+        agent_id: Optional agent ID (e.g., "persona_price_conscious")
+        
+    Returns:
+        Path to tools file if found, None otherwise
+    """
+    tools_file = None
+    
+    # First, look for shared tools file
+    shared_files = list(agent_folder.glob("shared_*.py"))
+    if shared_files:
+        tools_file = shared_files[0]  # Use first shared file found
+    
+    # If agent_id provided, look for agent-specific tools (overrides shared)
+    if agent_id:
+        # Extract the base name (e.g., "persona_price_conscious" -> "persona_price")
+        # Try exact match first
+        agent_specific = agent_folder / f"{agent_id}_tools.py"
+        if agent_specific.exists():
+            tools_file = agent_specific
+        else:
+            # Try prefix match (e.g., "persona_price" for "persona_price_conscious")
+            parts = agent_id.split("_")
+            for i in range(len(parts), 0, -1):
+                prefix = "_".join(parts[:i])
+                prefix_file = agent_folder / f"{prefix}_tools.py"
+                if prefix_file.exists():
+                    tools_file = prefix_file
+                    break
+    
+    return tools_file
+
+
 def cleanup_temp_files():
     """Remove all temporary agent card files and the temp directory."""
     import shutil
@@ -196,12 +238,18 @@ def generate_scenario_toml(
     
     # Add buyer agents
     port_offset = 0
+    buyer_folder = AGENTS_DIR / "buyer"
+    
     for persona, count in buyer_counts.items():
-        persona_file = AGENTS_DIR / "buyer" / f"persona_{persona}.toml"
+        persona_file = buyer_folder / f"persona_{persona}.toml"
         
         if not persona_file.exists():
             print(f"Warning: Persona file not found: {persona_file}, skipping...")
             continue
+        
+        # Find tools file for this persona
+        agent_id = f"persona_{persona}"
+        tools_file = find_tools_file(buyer_folder, agent_id)
         
         for i in range(count):
             agent_port = BUYER_BASE_PORT + port_offset
@@ -227,41 +275,74 @@ def generate_scenario_toml(
                 "model_name": model_name,
             }
             
+            # Add tools if found
+            if tools_file:
+                buyer_agent["tools"] = [str(tools_file)]
+            
             scenario["agents"].append(buyer_agent)
             port_offset += 1
     
     # Add seller agents
-    seller_file = AGENTS_DIR / "seller" / "baseseller.toml"
+    seller_folder = AGENTS_DIR / "seller"
     
-    if seller_file.exists():
-        for i in range(num_sellers):
-            agent_port = SELLER_BASE_PORT + i
-            launcher_port = SELLER_LAUNCHER_BASE_PORT + i
-            agent_name = f"Seller {i + 1}"
+    # Find all seller_*.toml files
+    seller_files = sorted(seller_folder.glob("seller_*.toml"))
+    
+    if seller_files:
+        port_offset = 0
+        sellers_to_spawn = num_sellers
+        
+        # Distribute sellers across available seller types
+        for seller_file in seller_files:
+            if port_offset >= sellers_to_spawn:
+                break
             
-            # Create temporary agent card with correct port/host
-            temp_seller_card = create_temp_agent_card(
-                seller_file,
-                agent_port,
-                launcher_port,
-                agent_name
-            )
+            # Extract seller type from filename (e.g., "seller_baseline.toml" -> "baseline")
+            seller_type = seller_file.stem.replace("seller_", "")
             
-            seller_agent = {
-                "name": agent_name,
-                "card": str(temp_seller_card),
-                "launcher_host": "0.0.0.0",
-                "launcher_port": launcher_port,
-                "agent_host": "0.0.0.0",
-                "agent_port": agent_port,
-                "model_type": model_type,
-                "model_name": model_name,
-            }
+            # Find tools file for this seller type
+            seller_id = f"seller_{seller_type}"
+            tools_file = find_tools_file(seller_folder, seller_id)
             
-            scenario["agents"].append(seller_agent)
+            # Calculate how many of this seller type to spawn
+            # For now, distribute evenly; you can customize this later
+            count = max(1, sellers_to_spawn // len(seller_files))
+            if port_offset + count > sellers_to_spawn:
+                count = sellers_to_spawn - port_offset
+            
+            for i in range(count):
+                agent_port = SELLER_BASE_PORT + port_offset
+                launcher_port = SELLER_LAUNCHER_BASE_PORT + port_offset
+                agent_name = f"Seller {port_offset + 1} ({seller_type})"
+                
+                # Create temporary agent card with correct port/host
+                temp_seller_card = create_temp_agent_card(
+                    seller_file,
+                    agent_port,
+                    launcher_port,
+                    agent_name
+                )
+                
+                seller_agent = {
+                    "name": agent_name,
+                    "card": str(temp_seller_card),
+                    "launcher_host": "0.0.0.0",
+                    "launcher_port": launcher_port,
+                    "agent_host": "0.0.0.0",
+                    "agent_port": agent_port,
+                    "model_type": model_type,
+                    "model_name": model_name,
+                }
+                
+                # Add tools if found
+                if tools_file:
+                    seller_agent["tools"] = [str(tools_file)]
+                
+                scenario["agents"].append(seller_agent)
+                port_offset += 1
     else:
         if num_sellers > 0:
-            print(f"Warning: Seller file not found: {seller_file}")
+            print(f"Warning: No seller_*.toml files found in {seller_folder}")
     
     return scenario
 
@@ -363,7 +444,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Start all agents (buyers and sellers)
+  # Start ALL agents (green, buyers, and sellers) - DEFAULT
+  uv run tools/start_agents.py
+  
+  # Start only white agents (buyers and sellers)
   uv run tools/start_agents.py --only-white-agents
   
   # Start only buyers
@@ -460,15 +544,19 @@ Examples:
         sys.exit(1)
     
     # Determine what to start
-    start_buyers = args.only_buyers or args.only_white_agents
-    start_sellers = args.only_sellers or args.only_white_agents
-    start_green = args.only_green_agent
+    # If no flags specified, start all agents
+    no_flags_specified = not (args.only_buyers or args.only_sellers or args.only_green_agent or args.only_white_agents)
     
-    # If nothing specified, show help
-    if not (start_buyers or start_sellers or start_green):
-        parser.print_help()
-        print("\nError: Please specify which agents to start.")
-        sys.exit(1)
+    if no_flags_specified:
+        # Start all agents by default
+        start_buyers = True
+        start_sellers = True
+        start_green = True
+        print("\nNo agent selection flags specified - starting ALL agents (green, buyers, and sellers)")
+    else:
+        start_buyers = args.only_buyers or args.only_white_agents
+        start_sellers = args.only_sellers or args.only_white_agents
+        start_green = args.only_green_agent
     
     # Get model configuration
     model_type = args.model_type or DEFAULT_MODEL_TYPE

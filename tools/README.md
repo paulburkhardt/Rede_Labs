@@ -19,7 +19,10 @@ Generates a `scenario.toml` and starts agents in a tmux session.
 #### Usage
 
 ```bash
-# Start all white agents (buyers and sellers)
+# Start ALL agents (green, buyers, and sellers) - DEFAULT
+uv run tools/start_agents.py
+
+# Start only white agents (buyers and sellers)
 uv run tools/start_agents.py --only-white-agents
 
 # Start only buyer agents
@@ -56,9 +59,28 @@ uv run tools/start_agents.py --only-white-agents --tmux-session my-simulation
 #### What It Does
 
 1. Reads buyer distribution from `agents/buyer/simulation_config.toml`
-2. Generates a `scenario.toml` with all agent configurations
-3. Launches agents using `agentbeats run scenario.toml`
-4. Creates a tmux session with one pane per agent
+2. Discovers and assigns tools files for each agent (see Tools Discovery below)
+3. Creates temporary agent card files with correct ports and hosts
+4. Generates a `scenario.toml` with all agent configurations
+5. Launches agents using `agentbeats load_scenario`
+6. Creates a tmux session with one pane per agent
+
+#### Default Behavior
+
+**If no flags are specified, ALL agents are started** (green agent, buyers, and sellers). This is the most common use case for running a full simulation.
+
+#### Tools Discovery
+
+The script automatically finds and assigns tools files for buyers and sellers:
+
+1. **Shared tools**: If a `shared_*.py` file exists in the agent folder (e.g., `agents/buyer/shared_tools.py`), it's used for all agents in that folder
+2. **Agent-specific tools**: If a `{agent_id}_tools.py` file exists (e.g., `persona_price_tools.py`), it overrides the shared tools for that specific agent
+3. **Prefix matching**: The script tries prefix matches (e.g., `persona_price_tools.py` matches `persona_price_conscious.toml`)
+
+Example:
+- `agents/buyer/shared_buyer_tools.py` → Used by all buyers
+- `agents/buyer/persona_price_tools.py` → Used only by price-conscious buyers (overrides shared)
+- `agents/seller/shared_seller_tools.py` → Used by all sellers
 
 #### Buyer Distribution
 
