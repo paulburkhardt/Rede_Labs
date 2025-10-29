@@ -8,7 +8,8 @@ from app.schemas.product import (
     ProductUpdate,
     ProductSearchResult,
     ProductDetail,
-    BatchRankingUpdate
+    BatchRankingUpdate,
+    ImageDescriptionSchema
 )
 from app.models.product import Product
 from app.models.seller import Seller
@@ -42,22 +43,34 @@ def create_product(
     if existing_product:
         raise HTTPException(status_code=400, detail="Product with this ID already exists")
     
-    # Check if an image with the same base64 already exists (deduplication)
-    existing_image = db.query(Image).filter(Image.base64 == product.image.base64).first()
+    # Validate image IDs
+    if not product.image_ids or len(product.image_ids) == 0:
+        raise HTTPException(status_code=400, detail="At least one image_id is required")
     
-    if existing_image:
-        # Reuse existing image
-        image_id = existing_image.id
-    else:
-        # Create new image
-        db_image = Image(
-            base64=product.image.base64,
-            image_description=product.image.image_description
+    # Fetch all images (deduplicate IDs first)
+    unique_image_ids = list(set(product.image_ids))
+    images = db.query(Image).filter(Image.id.in_(unique_image_ids)).all()
+    
+    if len(images) != len(unique_image_ids):
+        found_ids = {img.id for img in images}
+        missing_ids = set(unique_image_ids) - found_ids
+        raise HTTPException(
+            status_code=404,
+            detail=f"Images not found: {', '.join(missing_ids)}"
         )
-        db.add(db_image)
-        db.commit()
-        db.refresh(db_image)
-        image_id = db_image.id
+    
+    # Validate all images are from the same product_number
+    product_numbers = {img.product_number for img in images if img.product_number}
+    if len(product_numbers) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"All images must be from the same product_number. Found: {', '.join(product_numbers)}"
+        )
+    if len(product_numbers) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Images must have a product_number assigned"
+        )
     
     # Create new product
     db_product = Product(
@@ -66,9 +79,12 @@ def create_product(
         short_description=product.short_description,
         long_description=product.long_description,
         price_in_cent=product.price,
-        image_id=image_id,
         seller_id=seller.id
     )
+    
+    # Associate images with product
+    db_product.images = images
+    
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
@@ -114,23 +130,39 @@ def update_product(
         db_product.long_description = product.long_description
     if product.price is not None:
         db_product.price_in_cent = product.price
-    if product.image is not None:
-        # Check if an image with the same base64 already exists (deduplication)
-        existing_image = db.query(Image).filter(Image.base64 == product.image.base64).first()
+    if product.image_ids is not None:
+        # Validate image IDs
+        if len(product.image_ids) == 0:
+            raise HTTPException(status_code=400, detail="At least one image_id is required")
         
-        if existing_image:
-            # Reuse existing image
-            db_product.image_id = existing_image.id
-        else:
-            # Create new image
-            db_image = Image(
-                base64=product.image.base64,
-                image_description=product.image.image_description
+        # Fetch all images (deduplicate IDs first)
+        unique_image_ids = list(set(product.image_ids))
+        images = db.query(Image).filter(Image.id.in_(unique_image_ids)).all()
+        
+        if len(images) != len(unique_image_ids):
+            found_ids = {img.id for img in images}
+            missing_ids = set(unique_image_ids) - found_ids
+            raise HTTPException(
+                status_code=404,
+                detail=f"Images not found: {', '.join(missing_ids)}"
             )
-            db.add(db_image)
-            db.commit()
-            db.refresh(db_image)
-            db_product.image_id = db_image.id
+        
+        # Validate all images are from the same product_number
+        product_numbers = {img.product_number for img in images if img.product_number}
+        if len(product_numbers) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"All images must be from the same product_number. Found: {', '.join(product_numbers)}"
+            )
+        if len(product_numbers) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Images must have a product_number assigned"
+            )
+        
+        # Update product images
+        db_product.images = images
+    
     if product.ranking is not None:
         db_product.ranking = product.ranking
     
@@ -153,11 +185,15 @@ def get_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Format response
-    image_data = {
-        "base64": db_product.image.base64 if db_product.image else "",
-        "image_description": db_product.image.image_description if db_product.image else None
-    }
+    # Format response with image descriptions (no base64)
+    images_data = [
+        ImageDescriptionSchema(
+            id=img.id,
+            image_description=img.image_description,
+            product_number=img.product_number
+        )
+        for img in db_product.images
+    ]
     
     return ProductDetail(
         id=db_product.id,
@@ -168,7 +204,7 @@ def get_product(
         bestseller=db_product.bestseller,
         short_description=db_product.short_description,
         long_description=db_product.long_description,
-        image=image_data
+        images=images_data
     )
 
 # todo add security so only orchestration service can call this

@@ -1,6 +1,5 @@
 """Integration tests for purchase endpoint"""
 import pytest
-from tests.conftest import MOCK_BASE64_IMAGE
 
 
 class TestPurchaseCreation:
@@ -126,7 +125,7 @@ class TestPurchaseCreation:
 class TestPurchaseWorkflow:
     """Test complete purchase workflows"""
     
-    def test_complete_marketplace_workflow(self, client):
+    def test_complete_marketplace_workflow(self, client, sample_images):
         """Test a complete workflow: create org, product, buyer, and purchase"""
         # Step 1: Create seller
         org = client.post(
@@ -143,10 +142,7 @@ class TestPurchaseWorkflow:
                 "short_description": "Luxurious and soft",
                 "long_description": "Made from 100% Egyptian cotton",
                 "price": 3999,
-                "image": {
-                    "base64": MOCK_BASE64_IMAGE,
-                    "image_description": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {org['auth_token']}"}
         )

@@ -1,5 +1,4 @@
 import pytest
-import base64
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -7,17 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.database import Base, get_db
 from app.config import settings
+from app.models import Image
 
 # Mock base64 image (1x1 transparent PNG)
 MOCK_BASE64_IMAGE = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-
-
-def mock_image(description="Test image"):
-    """Helper function to create mock image data for tests"""
-    return {
-        "base64": MOCK_BASE64_IMAGE,
-        "image_description": description
-    }
 
 # Create a test database URL (using same DB but will clear it)
 TEST_DATABASE_URL = settings.database_url
@@ -80,17 +72,76 @@ def sample_buyer(client):
 
 
 @pytest.fixture
-def sample_product(client, sample_seller):
+def sample_images(db_session):
+    """Create sample images in the database with different product_numbers"""
+    images = []
+    
+    # Product number 01 - 3 images
+    for i in range(3):
+        img = Image(
+            base64=MOCK_BASE64_IMAGE,
+            image_description=f"Product 01 - View {i+1}",
+            product_number="01"
+        )
+        db_session.add(img)
+        images.append(img)
+    
+    # Product number 02 - 2 images
+    for i in range(2):
+        img = Image(
+            base64=MOCK_BASE64_IMAGE,
+            image_description=f"Product 02 - View {i+1}",
+            product_number="02"
+        )
+        db_session.add(img)
+        images.append(img)
+    
+    # Product number 03 - 4 images
+    for i in range(4):
+        img = Image(
+            base64=MOCK_BASE64_IMAGE,
+            image_description=f"Product 03 - View {i+1}",
+            product_number="03"
+        )
+        db_session.add(img)
+        images.append(img)
+    
+    # Uncategorized image (no product_number)
+    img = Image(
+        base64=MOCK_BASE64_IMAGE,
+        image_description="Uncategorized image",
+        product_number=None
+    )
+    db_session.add(img)
+    images.append(img)
+    
+    db_session.commit()
+    
+    # Refresh all images to get their IDs
+    for img in images:
+        db_session.refresh(img)
+    
+    return {
+        "all": images,
+        "01": images[0:3],
+        "02": images[3:5],
+        "03": images[5:9],
+        "uncategorized": images[9]
+    }
+
+
+@pytest.fixture
+def sample_product(client, sample_seller, sample_images):
     """Create a sample product and return its data"""
+    # Use images from product_number 01
+    image_ids = [img.id for img in sample_images["01"]]
+    
     product_data = {
         "name": "Test Product",
         "short_description": "A test product",
         "long_description": "This is a detailed description of the test product",
         "price": 1999,
-        "image": {
-            "base64": MOCK_BASE64_IMAGE,
-            "image_description": "Test product image"
-        }
+        "image_ids": image_ids
     }
     
     response = client.post(
@@ -102,5 +153,6 @@ def sample_product(client, sample_seller):
     return {
         "id": "test-product-1",
         "seller": sample_seller,
+        "image_ids": image_ids,
         **product_data
     }

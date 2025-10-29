@@ -1,12 +1,11 @@
 """Integration tests for search endpoint"""
 import pytest
-from tests.conftest import MOCK_BASE64_IMAGE
 
 
 class TestProductSearch:
     """Test product search functionality"""
     
-    def test_search_finds_matching_products(self, client, sample_seller):
+    def test_search_finds_matching_products(self, client, sample_seller, sample_images):
         """Test that search finds products by name"""
         # Create multiple products
         products = [
@@ -23,10 +22,7 @@ class TestProductSearch:
                     "short_description": "Test product",
                     "long_description": "Test description",
                     "price": prod["price"],
-                    "image": {
-                        "base64": MOCK_BASE64_IMAGE,
-                        "image_description": "Test"
-                    }
+                    "image_ids": [sample_images["01"][0].id]
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -41,7 +37,7 @@ class TestProductSearch:
         assert len(results) == 2
         assert all("towel" in r["name"].lower() for r in results)
     
-    def test_search_case_insensitive(self, client, sample_seller):
+    def test_search_case_insensitive(self, client, sample_seller, sample_images):
         """Test that search is case-insensitive"""
         # Create product
         client.post(
@@ -51,10 +47,7 @@ class TestProductSearch:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1999,
-                "image": {
-                    "base64": MOCK_BASE64_IMAGE,
-                    "image_description": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -66,7 +59,7 @@ class TestProductSearch:
         assert len(results) == 1
         assert "PREMIUM" in results[0]["name"]
     
-    def test_search_partial_match(self, client, sample_seller):
+    def test_search_partial_match(self, client, sample_seller, sample_images):
         """Test that search finds partial matches"""
         client.post(
             "/product/test-prod",
@@ -75,10 +68,7 @@ class TestProductSearch:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1999,
-                "image": {
-                    "base64": MOCK_BASE64_IMAGE,
-                    "image_description": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -111,7 +101,7 @@ class TestProductSearch:
         assert "seller_id" in result
         assert result["seller_id"] == sample_product["seller"]["id"]
     
-    def test_search_ranking_bestsellers_first(self, client, sample_seller):
+    def test_search_ranking_bestsellers_first(self, client, sample_seller, sample_images):
         """Test that bestsellers appear first in search results"""
         # Create regular product
         client.post(
@@ -121,10 +111,7 @@ class TestProductSearch:
                 "short_description": "Regular",
                 "long_description": "Regular",
                 "price": 1999,
-                "image": {
-                    "base64": MOCK_BASE64_IMAGE,
-                    "image_description": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -138,10 +125,7 @@ class TestProductSearch:
                 "short_description": "Amazing",
                 "long_description": "Amazing",
                 "price": 2999,
-                "image": {
-                    "base64": MOCK_BASE64_IMAGE,
-                    "image_description": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -169,11 +153,16 @@ class TestProductSearch:
         # Verify all required fields
         required_fields = [
             "id", "name", "seller_id", "price_in_cent", 
-            "currency", "bestseller", "short_description", "image"
+            "currency", "bestseller", "short_description", "images"
         ]
         for field in required_fields:
             assert field in result
         
         # Verify nested structures
-        assert "base64" in result["image"]
-        assert "image_description" in result["image"]
+        assert isinstance(result["images"], list)
+        assert len(result["images"]) > 0
+        assert "id" in result["images"][0]
+        assert "image_description" in result["images"][0]
+        assert "product_number" in result["images"][0]
+        # Verify no base64 in response
+        assert "base64" not in result["images"][0]

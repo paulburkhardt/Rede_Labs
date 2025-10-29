@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 import uuid
 
 from app.database import Base
+from app.models.product_image import product_images
 
 
 class Product(Base):
@@ -19,8 +20,7 @@ class Product(Base):
 
     # Foreign keys
     seller_id = Column(String, ForeignKey("sellers.id"), nullable=False)
-    image_id = Column(String, ForeignKey("images.id"), nullable=True)
 
     # Relationships
     seller = relationship("Seller", back_populates="products")
-    image = relationship("Image", back_populates="products")
+    images = relationship("Image", secondary=product_images, back_populates="products")
