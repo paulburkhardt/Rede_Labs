@@ -90,6 +90,46 @@ class TestProductCreation:
         
         assert response2.status_code == 400
         assert "already exists" in response2.json()["detail"]
+    
+    def test_create_product_with_zero_price(self, client, sample_seller, sample_images):
+        """Test that product creation fails with zero price"""
+        product_data = {
+            "name": "Free Product",
+            "short_description": "Test",
+            "long_description": "Test description",
+            "price": 0,
+            "image_ids": [sample_images["01"][0].id]
+        }
+        
+        response = client.post(
+            "/product/zero-price",
+            json=product_data,
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        assert response.status_code == 422
+        assert "price" in response.json()["detail"][0]["loc"]
+        assert "greater than 0" in response.json()["detail"][0]["msg"]
+    
+    def test_create_product_with_negative_price(self, client, sample_seller, sample_images):
+        """Test that product creation fails with negative price"""
+        product_data = {
+            "name": "Negative Price Product",
+            "short_description": "Test",
+            "long_description": "Test description",
+            "price": -500,
+            "image_ids": [sample_images["01"][0].id]
+        }
+        
+        response = client.post(
+            "/product/negative-price",
+            json=product_data,
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        assert response.status_code == 422
+        assert "price" in response.json()["detail"][0]["loc"]
+        assert "greater than 0" in response.json()["detail"][0]["msg"]
 
 
 class TestProductUpdate:
@@ -172,6 +212,34 @@ class TestProductUpdate:
         
         assert response.status_code == 404
         assert response.json()["detail"] == "Product not found"
+    
+    def test_update_product_with_zero_price(self, client, sample_product):
+        """Test that product update fails with zero price"""
+        update_data = {"price": 0}
+        
+        response = client.patch(
+            f"/product/{sample_product['id']}",
+            json=update_data,
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
+        )
+        
+        assert response.status_code == 422
+        assert "price" in response.json()["detail"][0]["loc"]
+        assert "greater than 0" in response.json()["detail"][0]["msg"]
+    
+    def test_update_product_with_negative_price(self, client, sample_product):
+        """Test that product update fails with negative price"""
+        update_data = {"price": -1000}
+        
+        response = client.patch(
+            f"/product/{sample_product['id']}",
+            json=update_data,
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
+        )
+        
+        assert response.status_code == 422
+        assert "price" in response.json()["detail"][0]["loc"]
+        assert "greater than 0" in response.json()["detail"][0]["msg"]
 
 
 class TestProductRetrieval:

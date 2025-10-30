@@ -28,12 +28,23 @@ def create_product(
     short_description: str,
     long_description: str,
     price: int,
-    image_ids: list[str]
+    image_ids: list[str],
+    towel_variant: str
 ):
     """
     Create a new product in the marketplace.
     
-    IMPORTANT: Products MUST have at least one image. The image_ids parameter is REQUIRED.
+    IMPORTANT: 
+    - Products MUST have at least one image. The image_ids parameter is REQUIRED.
+    - Products MUST specify a towel_variant. The towel_variant parameter is REQUIRED.
+    
+    TOWEL VARIANTS AVAILABLE (REQUIRED - choose one):
+    - "budget": 500 GSM, 27x54 inches, Standard Cotton, $8.00 wholesale cost
+    - "mid_tier": 550 GSM, 27x54 inches, Premium Cotton, $12.00 wholesale cost
+    - "premium": 600 GSM, 27x59 inches, Premium Cotton, $15.00 wholesale cost
+    
+    When you specify a towel_variant, the system automatically sets the GSM, dimensions, and material.
+    The product details endpoint will return these specifications (GSM, dimensions, material) but NOT the wholesale cost.
     
     Args:
         auth_token: Seller's authentication token
@@ -43,6 +54,7 @@ def create_product(
         long_description: Detailed product description
         price: Price in cents (e.g., 2999 for $29.99)
         image_ids: List of image IDs from the database (REQUIRED - at least one image, must be from same product_number)
+        towel_variant: REQUIRED towel variant ("budget", "mid_tier", or "premium"). Automatically sets GSM, dimensions, material, and wholesale cost.
     
     Returns:
         dict: Response from the API containing product creation status
@@ -55,7 +67,8 @@ def create_product(
         ...     short_description="Soft and absorbent",
         ...     long_description="Made from 100% Egyptian cotton",
         ...     price=2999,
-        ...     image_ids=["img-1", "img-2"]  # REQUIRED: Must provide at least one image
+        ...     image_ids=["img-1", "img-2"],  # REQUIRED: Must provide at least one image
+        ...     towel_variant="premium"  # REQUIRED: Must specify towel variant
         ... )
     """
     payload = {
@@ -63,7 +76,8 @@ def create_product(
         "short_description": short_description,
         "long_description": long_description,
         "price": price,
-        "image_ids": image_ids
+        "image_ids": image_ids,
+        "towel_variant": towel_variant
     }
     
     response = requests.post(
@@ -96,12 +110,18 @@ def update_product(
     short_description: Optional[str] = None,
     long_description: Optional[str] = None,
     price: Optional[int] = None,
-    image_ids: Optional[list[str]] = None
+    image_ids: Optional[list[str]] = None,
+    towel_variant: Optional[str] = None
 ):
     """
     Update an existing product.
     
     NOTE: If updating image_ids, you must provide at least one image. Products cannot have zero images.
+    
+    TOWEL VARIANTS AVAILABLE:
+    - "budget": 500 GSM, 27x54 inches, Standard Cotton, $8.00 wholesale cost
+    - "mid_tier": 550 GSM, 27x54 inches, Premium Cotton, $12.00 wholesale cost
+    - "premium": 600 GSM, 27x59 inches, Premium Cotton, $15.00 wholesale cost
     
     Args:
         auth_token: Seller's authentication token
@@ -111,6 +131,7 @@ def update_product(
         long_description: New detailed description (optional)
         price: New price in cents (optional)
         image_ids: New list of image IDs (if provided, must include at least one image from same product_number, optional)
+        towel_variant: Optional towel variant ("budget", "mid_tier", or "premium"). When specified, automatically updates GSM, dimensions, material, and wholesale cost.
     
     Returns:
         dict: Response from the API containing update status
@@ -120,7 +141,8 @@ def update_product(
         ...     auth_token="abc123",
         ...     product_id="towel-001",
         ...     price=2499,  # Reduce price to $24.99
-        ...     image_ids=["img-3", "img-4"]  # Change images (must have at least one)
+        ...     image_ids=["img-3", "img-4"],  # Change images (must have at least one)
+        ...     towel_variant="mid_tier"  # Optional: Change to mid-tier variant
         ... )
     """
     payload = {}
@@ -135,6 +157,8 @@ def update_product(
         payload["price"] = price
     if image_ids is not None:
         payload["image_ids"] = image_ids
+    if towel_variant is not None:
+        payload["towel_variant"] = towel_variant
     
     response = requests.patch(
         f"{API_URL}/product/{product_id}",

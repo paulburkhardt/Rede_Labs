@@ -14,6 +14,7 @@ from app.schemas.product import (
 from app.models.product import Product
 from app.models.seller import Seller
 from app.models.image import Image
+from app.models.towel_specs import get_towel_specification
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -72,6 +73,11 @@ def create_product(
             detail="Images must have a product_number assigned"
         )
     
+    # Get towel variant specification (use budget as default if not specified)
+    from app.models.towel_specs import TowelVariant
+    variant = product.towel_variant if product.towel_variant is not None else TowelVariant.BUDGET
+    spec = get_towel_specification(variant)
+    
     # Create new product
     db_product = Product(
         id=id,
@@ -79,7 +85,13 @@ def create_product(
         short_description=product.short_description,
         long_description=product.long_description,
         price_in_cent=product.price,
-        seller_id=seller.id
+        seller_id=seller.id,
+        towel_variant=variant,
+        gsm=spec.gsm,
+        width_inches=spec.width_inches,
+        length_inches=spec.length_inches,
+        material=spec.material,
+        wholesale_cost_cents=spec.wholesale_cost_cents
     )
     
     # Associate images with product
@@ -166,6 +178,16 @@ def update_product(
     if product.ranking is not None:
         db_product.ranking = product.ranking
     
+    # Update towel variant properties if specified
+    if product.towel_variant is not None:
+        spec = get_towel_specification(product.towel_variant)
+        db_product.towel_variant = product.towel_variant
+        db_product.gsm = spec.gsm
+        db_product.width_inches = spec.width_inches
+        db_product.length_inches = spec.length_inches
+        db_product.material = spec.material
+        db_product.wholesale_cost_cents = spec.wholesale_cost_cents
+    
     db.commit()
     db.refresh(db_product)
     
@@ -204,7 +226,12 @@ def get_product(
         bestseller=db_product.bestseller,
         short_description=db_product.short_description,
         long_description=db_product.long_description,
-        images=images_data
+        images=images_data,
+        towel_variant=db_product.towel_variant,
+        gsm=db_product.gsm,
+        width_inches=db_product.width_inches,
+        length_inches=db_product.length_inches,
+        material=db_product.material
     )
 
 # todo add security so only orchestration service can call this

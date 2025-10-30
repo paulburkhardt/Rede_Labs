@@ -1,9 +1,10 @@
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 import uuid
 
 from app.database import Base
 from app.models.product_image import product_images
+from app.models.towel_specs import TowelVariant
 
 
 class Product(Base):
@@ -17,6 +18,14 @@ class Product(Base):
     currency = Column(String, default="USD")
     bestseller = Column(Boolean, default=False)
     ranking = Column(Integer, nullable=True)
+    
+    # Towel variant properties
+    towel_variant = Column(Enum(TowelVariant), nullable=False)
+    gsm = Column(Integer, nullable=False)
+    width_inches = Column(Integer, nullable=False)
+    length_inches = Column(Integer, nullable=False)
+    material = Column(String, nullable=False)
+    wholesale_cost_cents = Column(Integer, nullable=False)
 
     # Foreign keys
     seller_id = Column(String, ForeignKey("sellers.id"), nullable=False)

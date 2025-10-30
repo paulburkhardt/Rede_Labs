@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator
 from typing import Optional, List, Dict
+from app.models.towel_specs import TowelVariant
 
 
 class ImageDescriptionSchema(BaseModel):
@@ -26,12 +27,20 @@ class ProductCreate(BaseModel):
     long_description: str
     price: int
     image_ids: List[str]  # List of image IDs from the database (REQUIRED - at least one image)
+    towel_variant: Optional[TowelVariant] = None  # Towel variant (budget, mid_tier, premium) - Optional for backward compatibility
     
     @field_validator('image_ids')
     @classmethod
     def validate_image_ids(cls, v):
         if not v or len(v) == 0:
             raise ValueError('At least one image_id is required. Products must have images.')
+        return v
+    
+    @field_validator('price')
+    @classmethod
+    def validate_price(cls, v):
+        if v <= 0:
+            raise ValueError('Price must be greater than 0. Negative or zero prices are not allowed.')
         return v
 
 
@@ -42,6 +51,14 @@ class ProductUpdate(BaseModel):
     price: Optional[int] = None
     image_ids: Optional[List[str]] = None  # List of image IDs from the database
     ranking: Optional[int] = None
+    towel_variant: Optional[TowelVariant] = None  # Towel variant (budget, mid_tier, premium)
+    
+    @field_validator('price')
+    @classmethod
+    def validate_price(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('Price must be greater than 0. Negative or zero prices are not allowed.')
+        return v
 
 
 class ProductSearchResult(BaseModel):
@@ -54,6 +71,11 @@ class ProductSearchResult(BaseModel):
     short_description: str
     images: List[ImageDescriptionSchema]  # List of image descriptions
     ranking: Optional[int] = None
+    towel_variant: Optional[TowelVariant] = None
+    gsm: Optional[int] = None
+    width_inches: Optional[int] = None
+    length_inches: Optional[int] = None
+    material: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -69,6 +91,11 @@ class ProductDetail(BaseModel):
     short_description: str
     long_description: str
     images: List[ImageDescriptionSchema]  # List of image descriptions
+    towel_variant: Optional[TowelVariant] = None
+    gsm: Optional[int] = None
+    width_inches: Optional[int] = None
+    length_inches: Optional[int] = None
+    material: Optional[str] = None
 
     class Config:
         from_attributes = True
