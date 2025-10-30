@@ -876,24 +876,26 @@ class TestLeaderboard:
     def test_leaderboard_with_free_products(
         self, client, sample_seller, sample_buyer, sample_images, set_phase
     ):
-        """Test leaderboard with products that have zero price"""
-        # Create a free product
-        client.post(
-            "/product/free-prod",
+        """Test leaderboard with products that have very low price (1 cent)"""
+        # Create a very low price product (1 cent)
+        response = client.post(
+            "/product/cheap-prod",
             json={
-                "name": "Free Product",
+                "name": "Cheap Product",
                 "short_description": "Test",
                 "long_description": "Test",
-                "price": 0,
-                "image_ids": [sample_images["01"][0].id]
+                "price": 1,
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
+        assert response.status_code == 200
         
-        # Purchase the free product
+        # Purchase the cheap product
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
-            "/buy/free-prod",
+            "/buy/cheap-prod",
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -907,8 +909,9 @@ class TestLeaderboard:
         entry = data[0]
         assert entry["seller_id"] == sample_seller["id"]
         assert entry["purchase_count"] == 1
-        assert entry["total_revenue_cents"] == 0
-        assert entry["total_revenue_dollars"] == 0.0
+        # Profit = 1 - 800 = -799 (loss)
+        assert entry["total_profit_cents"] == -799
+        assert entry["total_profit_dollars"] == -7.99
     
     def test_leaderboard_mixed_prices(self, client, sample_images, set_phase):
         """Test leaderboard with various price points"""

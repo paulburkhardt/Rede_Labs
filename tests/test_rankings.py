@@ -1,5 +1,6 @@
 import pytest
 import time
+from app.services.phase_manager import Phase
 
 
 @pytest.fixture
@@ -97,24 +98,25 @@ class TestRankingUpdateBySales:
         assert set(rankings) == {1, 2, 3}
     
     def test_update_rankings_by_sales_with_purchases(
-        self, client, sample_seller, sample_buyer, sample_products, sample_images
+        self, client, sample_seller, sample_buyer, sample_products, sample_images, set_phase
     ):
         """Test that rankings are updated based on actual sales"""
         # Create three products
         product_ids = [p["product_id"] for p in sample_products]
         
+        # Set phase to allow purchases
+        set_phase(Phase.BUYER_SHOPPING)
+        
         # Make purchases: product 0 gets 3 sales, product 1 gets 1 sale, product 2 gets 0 sales
         for _ in range(3):
             purchase_response = client.post(
                 f"/buy/{product_ids[0]}",
-                json={"purchased_at": int(time.time())},
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
             assert purchase_response.status_code == 200, f"Purchase failed: {purchase_response.text}"
         
         purchase_response = client.post(
             f"/buy/{product_ids[1]}",
-            json={"purchased_at": int(time.time())},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert purchase_response.status_code == 200, f"Purchase failed: {purchase_response.text}"
@@ -150,16 +152,18 @@ class TestRankingUpdateBySales:
         assert products[2]["ranking"] == 3
     
     def test_update_rankings_reflects_in_search_order(
-        self, client, sample_seller, sample_buyer, sample_products
+        self, client, sample_seller, sample_buyer, sample_products, set_phase
     ):
         """Test that updated rankings affect search result ordering"""
         product_ids = [p["product_id"] for p in sample_products]
+        
+        # Set phase to allow purchases
+        set_phase(Phase.BUYER_SHOPPING)
         
         # Make product 2 the best seller
         for _ in range(5):
             client.post(
                 f"/buy/{product_ids[2]}",
-                json={"purchased_at": int(time.time())},
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
         
@@ -186,31 +190,32 @@ class TestRankingUpdateBySales:
 
 class TestRankingWorkflow:
     def test_complete_ranking_workflow(
-        self, client, sample_seller, sample_buyer, sample_products
+        self, client, sample_seller, sample_buyer, sample_products, set_phase
     ):
         """Test the complete workflow: initialize -> purchases -> update"""
         # Step 1: Initialize rankings randomly
         init_response = client.post("/rankings/initialize")
         assert init_response.status_code == 200
         
-        # Step 2: Make some purchases
+        # Step 2: Set phase to allow purchases
+        set_phase(Phase.BUYER_SHOPPING)
+        
+        # Step 3: Make some purchases
         product_ids = [p["product_id"] for p in sample_products]
         client.post(
             f"/buy/{product_ids[1]}",
-            json={"purchased_at": int(time.time())},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         client.post(
             f"/buy/{product_ids[1]}",
-            json={"purchased_at": int(time.time())},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
-        # Step 3: Update rankings based on sales
+        # Step 4: Update rankings based on sales
         update_response = client.post("/rankings/update-by-sales")
         assert update_response.status_code == 200
         
-        # Step 4: Verify product 1 is now rank 1
+        # Step 5: Verify product 1 is now rank 1
         search_response = client.get("/search?q=")
         products = search_response.json()
         
