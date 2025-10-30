@@ -45,7 +45,7 @@ def create_purchase(
     db_purchase = Purchase(
         product_id=product_id,
         buyer_id=buyer.id,
-        purchased_at=current_day,,
+        purchased_at=current_day,
         price_of_purchase=product.price_in_cent,
         wholesale_cost_at_purchase=product.wholesale_cost_cents
     )

@@ -548,7 +548,7 @@ Response format:
 
 
 async def report_leaderboard():
-    """Queries the purchase history and reports a leaderboard (total revenue,
+    """Queries the purchase history and reports a leaderboard (total profit,
     etc.) to AgentBeats."""
     global battle_context
 
@@ -575,21 +575,21 @@ async def report_leaderboard():
 
         for entry in leaderboard_data:
             seller_id = entry["seller_id"]
-            revenue = entry["total_revenue_cents"]
+            profit = entry["total_profit_cents"]
             purchase_count = entry["purchase_count"]
 
-            # Score is based on total revenue
-            score = revenue
+            # Score is based on total profit
+            score = profit
             scores[seller_id] = {
-                "revenue_cents": revenue,
-                "revenue_dollars": entry["total_revenue_dollars"],
+                "profit_cents": profit,
+                "profit_dollars": entry["total_profit_dollars"],
                 "purchase_count": purchase_count,
                 "score": score,
             }
 
             record_battle_event(
                 battle_context,
-                f"Seller {seller_id}: ${entry['total_revenue_dollars']:.2f} revenue, {purchase_count} purchases",
+                f"Seller {seller_id}: ${entry['total_profit_dollars']:.2f} profit, {purchase_count} purchases",
             )
 
             if score > winner_score:
@@ -601,12 +601,12 @@ async def report_leaderboard():
             "leaderboard": leaderboard_data,
             "scores": scores,
             "winner": winner,
-            "winner_revenue": winner_score / 100.0 if winner_score else 0,
+            "winner_profit": winner_score / 100.0 if winner_score else 0,
         }
 
         record_battle_result(
             battle_context,
-            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total revenue",
+            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total profit",
             winner,
             result_detail,
         )
