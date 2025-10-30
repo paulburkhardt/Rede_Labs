@@ -588,6 +588,7 @@ async def report_leaderboard():
         record_battle_result(
             battle_context,
             f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total revenue",
+            winner,
             result_detail,
         )
 
