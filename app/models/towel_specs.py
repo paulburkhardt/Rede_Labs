@@ -58,3 +58,16 @@ TOWEL_VARIANTS: Dict[TowelVariant, TowelSpecification] = {
 def get_towel_specification(variant: TowelVariant) -> TowelSpecification:
     """Get the specification for a given towel variant"""
     return TOWEL_VARIANTS[variant]
+
+
+# Mapping from towel variant to product_number (image category code)
+TOWEL_VARIANT_TO_PRODUCT_NUMBER: Dict[TowelVariant, str] = {
+    TowelVariant.BUDGET: "01",      # Budget = product_number 01
+    TowelVariant.MID_TIER: "02",    # Mid-tier = product_number 02
+    TowelVariant.PREMIUM: "03"      # Premium = product_number 03
+}
+
+
+def get_product_number_for_variant(variant: TowelVariant) -> str:
+    """Get the product_number (image category code) for a given towel variant"""
+    return TOWEL_VARIANT_TO_PRODUCT_NUMBER[variant]

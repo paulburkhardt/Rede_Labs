@@ -45,6 +45,17 @@ class Buyer(NamedTuple):
     url: str
     token: str
 
+# If you change this, also change it in app/services/phase_manager.py
+class Phase(str, Enum):
+    """Lifecycle phases that gate marketplace operations."""
+
+    #: Phase for seller management, where sellers can update listings
+    SELLER_MANAGEMENT = "seller_management"
+    #: Phase for buyer shopping, where buyers can purchase products
+    BUYER_SHOPPING = "buyer_shopping"
+    #: Phase for open marketplace, where all interactions are allowed
+    OPEN = "open"
+
 
 sellers: list[Seller] = []
 buyers: list[Buyer] = []
@@ -82,6 +93,27 @@ def change_phase(phase: Phase) -> None:
     if battle_context:
         record_battle_event(
             battle_context, f"Marketplace phase set to '{phase.value}'"
+        )
+
+
+def set_marketplace_day(day: int) -> None:
+    """
+    Update the marketplace backend to the specified simulated day.
+    """
+    headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+    response = requests.post(
+        f"{api_url}/admin/day",
+        json={"day": day},
+        headers=headers,
+    )
+    if response.status_code != 200:
+        raise Exception(
+            f"Failed to update marketplace day to {day}: {response.text}"
+        )
+
+    if battle_context:
+        record_battle_event(
+            battle_context, f"Marketplace day set to '{day}'"
         )
 
 
@@ -247,6 +279,7 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     # Clear database and reload images at the start
     clear_database()
     reload_images()
+    set_marketplace_day(0)
 
     days: int = 5  # Total days in the battle
     try:
@@ -263,7 +296,8 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
         change_phase(Phase.BUYER_SHOPPING)
         await buyers_buy_products()
 
-        for i in range(days - 1):
+        for current_day in range(1, days):
+            set_marketplace_day(current_day)
             await update_ranking()
 
             change_phase(Phase.SELLER_MANAGEMENT)
@@ -514,7 +548,7 @@ Response format:
 
 
 async def report_leaderboard():
-    """Queries the purchase history and reports a leaderboard (total revenue,
+    """Queries the purchase history and reports a leaderboard (total profit,
     etc.) to AgentBeats."""
     global battle_context
 
@@ -541,21 +575,21 @@ async def report_leaderboard():
 
         for entry in leaderboard_data:
             seller_id = entry["seller_id"]
-            revenue = entry["total_revenue_cents"]
+            profit = entry["total_profit_cents"]
             purchase_count = entry["purchase_count"]
 
-            # Score is based on total revenue
-            score = revenue
+            # Score is based on total profit
+            score = profit
             scores[seller_id] = {
-                "revenue_cents": revenue,
-                "revenue_dollars": entry["total_revenue_dollars"],
+                "profit_cents": profit,
+                "profit_dollars": entry["total_profit_dollars"],
                 "purchase_count": purchase_count,
                 "score": score,
             }
 
             record_battle_event(
                 battle_context,
-                f"Seller {seller_id}: ${entry['total_revenue_dollars']:.2f} revenue, {purchase_count} purchases",
+                f"Seller {seller_id}: ${entry['total_profit_dollars']:.2f} profit, {purchase_count} purchases",
             )
 
             if score > winner_score:
@@ -567,12 +601,12 @@ async def report_leaderboard():
             "leaderboard": leaderboard_data,
             "scores": scores,
             "winner": winner,
-            "winner_revenue": winner_score / 100.0 if winner_score else 0,
+            "winner_profit": winner_score / 100.0 if winner_score else 0,
         }
 
         record_battle_result(
             battle_context,
-            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total revenue",
+            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total profit",
             winner,
             result_detail,
         )

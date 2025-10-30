@@ -56,6 +56,8 @@ def client(db_session):
             "/admin/phase", json={"phase": Phase.SELLER_MANAGEMENT.value}
         )
         assert response.status_code == 200, response.text
+        response = test_client.post("/admin/day", json={"day": 0})
+        assert response.status_code == 200, response.text
         yield test_client
     app.dependency_overrides.clear()
 
@@ -147,6 +149,21 @@ def set_phase(client):
         response = client.post(
             "/admin/phase",
             json={"phase": phase.value if isinstance(phase, Phase) else phase},
+        )
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    return _set
+
+
+@pytest.fixture
+def set_day(client):
+    """Utility fixture to configure the simulated marketplace day during a test."""
+
+    def _set(day: int):
+        response = client.post(
+            "/admin/day",
+            json={"day": day},
         )
         assert response.status_code == 200, response.text
         return response.json()

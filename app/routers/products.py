@@ -15,7 +15,7 @@ from app.models.product import Product
 from app.models.seller import Seller
 from app.models.image import Image
 from app.services.phase_manager import ensure_phase, Phase
-from app.models.towel_specs import get_towel_specification
+from app.models.towel_specs import get_towel_specification, get_product_number_for_variant
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -80,6 +80,17 @@ def create_product(
     from app.models.towel_specs import TowelVariant
     variant = product.towel_variant if product.towel_variant is not None else TowelVariant.BUDGET
     spec = get_towel_specification(variant)
+    
+    # Validate that images match the towel variant category
+    # Budget (01), Mid-tier (02), Premium (03)
+    expected_product_number = get_product_number_for_variant(variant)
+    actual_product_number = product_numbers.pop()  # We know there's exactly one
+    
+    if actual_product_number != expected_product_number:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image category mismatch: Selected images are from category '{actual_product_number}' but towel_variant '{variant.value}' requires category '{expected_product_number}'. Budget='01', Mid-tier='02', Premium='03'."
+        )
     
     # Create new product
     db_product = Product(
@@ -177,6 +188,18 @@ def update_product(
                 detail="Images must have a product_number assigned"
             )
         
+        # Validate that images match the current towel variant category
+        # Use the product's current variant if not being updated
+        current_variant = product.towel_variant if product.towel_variant is not None else db_product.towel_variant
+        expected_product_number = get_product_number_for_variant(current_variant)
+        actual_product_number = product_numbers.pop()  # We know there's exactly one
+        
+        if actual_product_number != expected_product_number:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Image category mismatch: Selected images are from category '{actual_product_number}' but towel_variant '{current_variant.value}' requires category '{expected_product_number}'. Budget='01', Mid-tier='02', Premium='03'."
+            )
+        
         # Update product images
         db_product.images = images
     
@@ -185,6 +208,20 @@ def update_product(
     
     # Update towel variant properties if specified
     if product.towel_variant is not None:
+        # If changing variant without changing images, validate existing images match new variant
+        if product.image_ids is None and db_product.images:
+            # Check if existing images match the new variant
+            existing_product_numbers = {img.product_number for img in db_product.images if img.product_number}
+            if existing_product_numbers:
+                expected_product_number = get_product_number_for_variant(product.towel_variant)
+                actual_product_number = existing_product_numbers.pop()
+                
+                if actual_product_number != expected_product_number:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Cannot change towel_variant: Current images are from category '{actual_product_number}' but new variant '{product.towel_variant.value}' requires category '{expected_product_number}'. Please update images to match the new variant. Budget='01', Mid-tier='02', Premium='03'."
+                    )
+        
         spec = get_towel_specification(product.towel_variant)
         db_product.towel_variant = product.towel_variant
         db_product.gsm = spec.gsm

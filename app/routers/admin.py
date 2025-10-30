@@ -3,8 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.schemas.metadata import PhaseResponse, PhaseUpdateRequest
+from app.schemas.metadata import (
+    PhaseResponse,
+    PhaseUpdateRequest,
+    DayResponse,
+    DayUpdateRequest,
+)
 from app.services.phase_manager import get_current_phase, set_current_phase
+from app.services.day_manager import get_current_day, set_current_day
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -40,3 +46,23 @@ def update_phase(
     new_phase = set_current_phase(db, phase_update.phase)
     return PhaseResponse(phase=new_phase)
 
+
+@router.get("/day", response_model=DayResponse)
+def get_day(
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> DayResponse:
+    """Return the currently configured marketplace day."""
+    current_day = get_current_day(db)
+    return DayResponse(day=current_day)
+
+
+@router.post("/day", response_model=DayResponse)
+def update_day(
+    day_update: DayUpdateRequest,
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> DayResponse:
+    """Update the marketplace day."""
+    new_day = set_current_day(db, day_update.day)
+    return DayResponse(day=new_day)

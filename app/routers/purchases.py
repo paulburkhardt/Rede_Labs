@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.schemas.purchase import PurchaseCreate, PurchaseResponse
+from app.schemas.purchase import PurchaseResponse
 from app.models.purchase import Purchase
 from app.models.product import Product
 from app.models.buyer import Buyer
 from app.services.phase_manager import ensure_phase, Phase
+from app.services.day_manager import get_current_day
 
 router = APIRouter(prefix="/buy", tags=["purchases"])
 
@@ -16,7 +17,6 @@ router = APIRouter(prefix="/buy", tags=["purchases"])
 @router.post("/{product_id}", response_model=PurchaseResponse)
 def create_purchase(
     product_id: str,
-    purchase: PurchaseCreate,
     authorization: str = Header(..., description="Bearer token for buyer"),
     db: Session = Depends(get_db)
 ):
@@ -39,12 +39,13 @@ def create_purchase(
         raise HTTPException(status_code=404, detail="Product not found")
 
     ensure_phase(db, [Phase.BUYER_SHOPPING])
+    current_day = get_current_day(db)
 
     # Create purchase record
     db_purchase = Purchase(
         product_id=product_id,
         buyer_id=buyer.id,
-        purchased_at=purchase.purchased_at,
+        purchased_at=current_day,
         price_of_purchase=product.price_in_cent,
         wholesale_cost_at_purchase=product.wholesale_cost_cents
     )

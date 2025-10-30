@@ -102,7 +102,7 @@ class TestProductCreationWithImages:
             "long_description": "Test",
             "price": 1999,
             "image_ids": image_ids,
-        "towel_variant": "budget"
+        "towel_variant": "mid_tier"  # Category 02 = mid_tier
         }
         
         response = client.post(
@@ -123,7 +123,7 @@ class TestProductCreationWithImages:
             "long_description": "Test",
             "price": 1999,
             "image_ids": image_ids,
-        "towel_variant": "budget"
+        "towel_variant": "premium"  # Category 03 = premium
         }
         
         response = client.post(
@@ -287,7 +287,7 @@ class TestProductUpdateWithImages:
         
         update_data = {
             "image_ids": new_image_ids,
-            "towel_variant": "budget",
+            "towel_variant": "mid_tier",  # Category 02 = mid_tier
         }
         
         response = client.patch(
@@ -413,7 +413,7 @@ class TestProductRetrievalWithImages:
             "long_description": "Test",
             "price": 1999,
             "image_ids": [img.id for img in sample_images["01"]],
-            "towel_variant": "budget"
+            "towel_variant": "budget"  # Category 01 = budget
         }
         
         response1 = client.post(
@@ -430,7 +430,7 @@ class TestProductRetrievalWithImages:
             "long_description": "Test",
             "price": 2999,
             "image_ids": [img.id for img in sample_images["02"]],
-            "towel_variant": "budget"
+            "towel_variant": "mid_tier"  # Category 02 = mid_tier
         }
         
         response2 = client.post(
