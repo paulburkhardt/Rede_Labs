@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
     sa.PrimaryKeyConstraint('product_id', 'image_id')
     )
-    op.drop_constraint(op.f('products_image_id_fkey'), 'products', type_='foreignkey')
+    op.drop_constraint('fk_products_image_id', 'products', type_='foreignkey')
     op.drop_column('products', 'image_id')
     # ### end Alembic commands ###
 
