@@ -15,12 +15,20 @@ class TestProductSearch:
         ]
         
         for prod in products:
+            name_lower = prod["name"].lower()
+            if "towel" in name_lower:
+                short_desc = f"A quality towel set - {name_lower}"
+                long_desc = f"This {name_lower} is a soft towel perfect for everyday use"
+            else:
+                short_desc = "A soothing lavender soap for daily use"
+                long_desc = "Gentle soap with lavender scent"
             client.post(
                 f"/product/{prod['id']}",
                 json={
                     "name": prod["name"],
-                    "short_description": "Test product",
-                    "long_description": "Test description",
+                    # Ensure only towel products include 'towel' in descriptions
+                    "short_description": short_desc,
+                    "long_description": long_desc,
                     "price": prod["price"],
                     "image_ids": [sample_images["01"][0].id]
                 },
@@ -44,8 +52,8 @@ class TestProductSearch:
             "/product/test-prod",
             json={
                 "name": "PREMIUM Towel",
-                "short_description": "Test",
-                "long_description": "Test",
+                "short_description": "this is a premium towel",
+                "long_description": "The Premium towel is extra soft",
                 "price": 1999,
                 "image_ids": [sample_images["01"][0].id]
             },
@@ -65,8 +73,8 @@ class TestProductSearch:
             "/product/test-prod",
             json={
                 "name": "Extraordinary Product",
-                "short_description": "Test",
-                "long_description": "Test",
+                "short_description": "An ordinary but extraordinary item",
+                "long_description": "Truly extraordinary quality for ordinary needs",
                 "price": 1999,
                 "image_ids": [sample_images["01"][0].id]
             },
@@ -89,7 +97,8 @@ class TestProductSearch:
     
     def test_search_includes_company_info(self, client, sample_product):
         """Test that search results include company information"""
-        response = client.get(f"/search?q={sample_product['name']}")
+        # Ensure query matches across all fields; use 'test' which is present in name and descriptions
+        response = client.get("/search?q=test")
         
         assert response.status_code == 200
         results = response.json()
@@ -101,32 +110,42 @@ class TestProductSearch:
         assert "seller_id" in result
         assert result["seller_id"] == sample_product["seller"]["id"]
     
-    def test_search_ranking_bestsellers_first(self, client, sample_seller, sample_images):
-        """Test that bestsellers appear first in search results"""
-        # Create regular product
+    def test_search_ranking_priority(self, client, sample_seller, sample_images):
+        """Test that ranking takes priority in search ordering"""
+        # Create two matching products
         client.post(
             "/product/regular-prod",
             json={
                 "name": "Regular Towel",
-                "short_description": "Regular",
-                "long_description": "Regular",
+                "short_description": "Regular towel",
+                "long_description": "Regular towel item",
                 "price": 1999,
                 "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
-        # Manually set a product as bestseller (would need to update the product)
-        # For now, verify the ordering works alphabetically
         client.post(
             "/product/amazing-towel",
             json={
                 "name": "Amazing Towel",
-                "short_description": "Amazing",
-                "long_description": "Amazing",
+                "short_description": "Amazing towel",
+                "long_description": "Amazing towel item",
                 "price": 2999,
                 "image_ids": [sample_images["01"][0].id]
             },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        # Set explicit rankings: amazing-towel higher than regular-prod
+        client.patch(
+            "/product/amazing-towel",
+            json={"ranking": 10},
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        client.patch(
+            "/product/regular-prod",
+            json={"ranking": 1},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
@@ -135,14 +154,13 @@ class TestProductSearch:
         
         # Should have both products
         assert len(results) == 2
-        
-        # Verify alphabetical ordering (since none are bestsellers)
+        # Verify ranking ordering (higher ranking first)
         assert results[0]["name"] == "Amazing Towel"
         assert results[1]["name"] == "Regular Towel"
     
     def test_search_response_format(self, client, sample_product):
         """Test that search results have correct format"""
-        response = client.get(f"/search?q={sample_product['name']}")
+        response = client.get("/search?q=test")
         
         assert response.status_code == 200
         results = response.json()
@@ -157,6 +175,8 @@ class TestProductSearch:
         ]
         for field in required_fields:
             assert field in result
+        # Ranking may be present
+        assert "ranking" in result
         
         # Verify nested structures
         assert isinstance(result["images"], list)
@@ -166,3 +186,60 @@ class TestProductSearch:
         assert "product_number" in result["images"][0]
         # Verify no base64 in response
         assert "base64" not in result["images"][0]
+
+    def test_search_keyword_only_in_title(self, client, sample_seller, sample_images):
+        """Keyword present only in product name should match"""
+        client.post(
+            "/product/only-title",
+            json={
+                "name": "UniqueTitleKeyword Item",
+                "short_description": "Plain short description",
+                "long_description": "Plain long description",
+                "price": 1500,
+                "image_ids": [sample_images["01"][0].id],
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
+        )
+
+        response = client.get("/search?q=uniquetitlekeyword")
+        assert response.status_code == 200
+        results = response.json()
+        assert any(r["id"] == "only-title" for r in results)
+
+    def test_search_keyword_only_in_short_description(self, client, sample_seller, sample_images):
+        """Keyword present only in short_description should match"""
+        client.post(
+            "/product/only-short",
+            json={
+                "name": "Generic Item",
+                "short_description": "Includes UniqueShortKeyword in short",
+                "long_description": "Plain long description",
+                "price": 1600,
+                "image_ids": [sample_images["01"][0].id],
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
+        )
+
+        response = client.get("/search?q=uniqueshortkeyword")
+        assert response.status_code == 200
+        results = response.json()
+        assert any(r["id"] == "only-short" for r in results)
+
+    def test_search_keyword_only_in_long_description(self, client, sample_seller, sample_images):
+        """Keyword present only in long_description should match"""
+        client.post(
+            "/product/only-long",
+            json={
+                "name": "Generic Item",
+                "short_description": "Plain short description",
+                "long_description": "This paragraph contains UniqueLongKeyword only here.",
+                "price": 1700,
+                "image_ids": [sample_images["01"][0].id],
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
+        )
+
+        response = client.get("/search?q=uniquelongkeyword")
+        assert response.status_code == 200
+        results = response.json()
+        assert any(r["id"] == "only-long" for r in results)

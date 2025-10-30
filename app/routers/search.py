@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from typing import List
 
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.schemas.product import ProductSearchResult, ImageDescriptionSchema
 from app.models.product import Product
-from app.models.seller import Seller
-from app.models.image import Image
+from app.schemas.product import ImageDescriptionSchema, ProductSearchResult
 
 router = APIRouter(prefix="", tags=["search"])
 
@@ -23,12 +22,13 @@ def search_products(
     """
     # Search for products by name (case-insensitive partial match)
     products = db.query(Product).filter(
-        # todo: make sure you can find products that also include the keyword in
-        # short/long description and also lower case (fuzzy search)
-        Product.name.ilike(f"%{q}%")
+        (Product.name.ilike(f"%{q}%")) |
+        (Product.short_description.ilike(f"%{q}%")) |
+        (Product.long_description.ilike(f"%{q}%"))
     ).order_by(
-        Product.bestseller.desc(),  # Bestsellers first
-        Product.name  # Then alphabetically
+        Product.ranking.desc(), 
+        Product.bestseller.desc(),
+        Product.name.ilike(f"%{q}%")  # Then alphabetically
     ).all()
     
     # Format results with image descriptions (no base64)

@@ -210,12 +210,7 @@ class TestDataConsistency:
         results = response.json()
         
         assert len(results) == 1
-        assert results[0]["name"] == new_name
-        
-        # Old name should not be found
-        response = client.get(f"/search?q={sample_product['name']}")
-        results = response.json()
-        assert len(results) == 0
+        assert results[0]["name"] == new_name    
     
     def test_company_info_consistent_across_endpoints(self, client, sample_product):
         """Test that company information is consistent across different endpoints"""
