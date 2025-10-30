@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.buyer import BuyerCreate, BuyerResponse
+from app.schemas.buyer import BuyerResponse
 from app.models.buyer import Buyer
 
 router = APIRouter(prefix="", tags=["buyers"])
@@ -10,7 +10,6 @@ router = APIRouter(prefix="", tags=["buyers"])
 
 @router.post("/createBuyer", response_model=BuyerResponse)
 def create_buyer(
-    buyer: BuyerCreate,
     db: Session = Depends(get_db)
 ):
     """
@@ -18,7 +17,7 @@ def create_buyer(
     Returns the buyer with an auth_token for making purchases.
     """
     # Create new buyer
-    db_buyer = Buyer(name=buyer.name)
+    db_buyer = Buyer()
     db.add(db_buyer)
     db.commit()
     db.refresh(db_buyer)
