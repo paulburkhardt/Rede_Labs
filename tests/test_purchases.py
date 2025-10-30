@@ -14,7 +14,6 @@ class TestPurchaseCreation:
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -26,13 +25,39 @@ class TestPurchaseCreation:
         assert "product_id" in data
         assert data["product_id"] == sample_product['id']
         assert len(data["id"]) > 0
+
+    def test_purchase_tracks_current_day(
+        self,
+        client,
+        sample_product,
+        sample_buyer,
+        set_phase,
+        set_day,
+    ):
+        """Ensure purchases record the current simulated day."""
+        set_day(2)
+        set_phase(Phase.BUYER_SHOPPING)
+        purchase_response = client.post(
+            f"/buy/{sample_product['id']}",
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+
+        assert purchase_response.status_code == 200
+
+        stats_response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
+        )
+        assert stats_response.status_code == 200
+        stats = stats_response.json()
+        assert stats["purchases"]
+        assert stats["purchases"][0]["purchased_at"] == 2
     
     def test_purchase_without_auth(self, client, sample_product, set_phase):
         """Test that purchase fails without authentication"""
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0}
         )
         
         assert response.status_code == 422  # Missing required header
@@ -42,7 +67,6 @@ class TestPurchaseCreation:
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": "Bearer invalid-buyer-token"}
         )
         
@@ -56,7 +80,6 @@ class TestPurchaseCreation:
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             "/buy/nonexistent-product-id",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -71,7 +94,6 @@ class TestPurchaseCreation:
         # First purchase
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert response1.status_code == 200
@@ -80,7 +102,6 @@ class TestPurchaseCreation:
         # Second purchase of same product
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 1},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         assert response2.status_code == 200
@@ -107,13 +128,11 @@ class TestPurchaseCreation:
         set_phase(Phase.BUYER_SHOPPING)
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer1['auth_token']}"}
         )
         
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer2['auth_token']}"}
         )
         
@@ -130,7 +149,6 @@ class TestPurchaseCreation:
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
@@ -145,7 +163,6 @@ class TestPurchaseCreation:
         set_phase(Phase.SELLER_MANAGEMENT)
         response = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
 
@@ -202,7 +219,6 @@ class TestPurchaseWorkflow:
         set_phase(Phase.BUYER_SHOPPING)
         purchase_response = client.post(
             "/buy/premium-towel",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         

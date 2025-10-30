@@ -10,3 +10,10 @@ class PhaseResponse(BaseModel):
 class PhaseUpdateRequest(BaseModel):
     phase: Phase
 
+
+class DayResponse(BaseModel):
+    day: int
+
+
+class DayUpdateRequest(BaseModel):
+    day: int

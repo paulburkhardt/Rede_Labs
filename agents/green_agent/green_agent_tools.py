@@ -19,7 +19,7 @@ import asyncio
 import toml
 from pathlib import Path
 import os
-from app.services.phase_manager import Phase
+from enum import Enum
 import subprocess
 import sys
 
@@ -45,6 +45,17 @@ class Buyer(NamedTuple):
     url: str
     token: str
 
+# If you change this, also change it in app/services/phase_manager.py
+class Phase(str, Enum):
+    """Lifecycle phases that gate marketplace operations."""
+
+    #: Phase for seller management, where sellers can update listings
+    SELLER_MANAGEMENT = "seller_management"
+    #: Phase for buyer shopping, where buyers can purchase products
+    BUYER_SHOPPING = "buyer_shopping"
+    #: Phase for open marketplace, where all interactions are allowed
+    OPEN = "open"
+
 
 sellers: list[Seller] = []
 buyers: list[Buyer] = []
@@ -68,6 +79,27 @@ def change_phase(phase: Phase) -> None:
     if battle_context:
         record_battle_event(
             battle_context, f"Marketplace phase set to '{phase.value}'"
+        )
+
+
+def set_marketplace_day(day: int) -> None:
+    """
+    Update the marketplace backend to the specified simulated day.
+    """
+    headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+    response = requests.post(
+        f"{api_url}/admin/day",
+        json={"day": day},
+        headers=headers,
+    )
+    if response.status_code != 200:
+        raise Exception(
+            f"Failed to update marketplace day to {day}: {response.text}"
+        )
+
+    if battle_context:
+        record_battle_event(
+            battle_context, f"Marketplace day set to '{day}'"
         )
 
 
@@ -233,6 +265,7 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     # Clear database and reload images at the start
     clear_database()
     reload_images()
+    set_marketplace_day(0)
 
     days: int = 5  # Total days in the battle
     try:
@@ -249,7 +282,8 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
         change_phase(Phase.BUYER_SHOPPING)
         await buyers_buy_products()
 
-        for i in range(days - 1):
+        for current_day in range(1, days):
+            set_marketplace_day(current_day)
             await update_ranking()
 
             change_phase(Phase.SELLER_MANAGEMENT)

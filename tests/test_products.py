@@ -476,14 +476,12 @@ class TestRankingWithPurchaseStats:
         for i in range(5):
             client.post(
                 "/buy/popular-1",
-                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
         for i in range(2):
             client.post(
                 "/buy/unpopular-1",
-                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         

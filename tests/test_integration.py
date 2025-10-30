@@ -80,13 +80,11 @@ class TestAuthenticationSecurity:
         set_phase(Phase.BUYER_SHOPPING)
         response1 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer1['auth_token']}"}
         )
         
         response2 = client.post(
             f"/buy/{sample_product['id']}",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer2['auth_token']}"}
         )
         
@@ -337,7 +335,6 @@ class TestSalesStats:
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/test-prod-1",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -390,7 +387,6 @@ class TestSalesStats:
             # Each buyer purchases product 0
             client.post(
                 "/buy/prod-0",
-                json={"purchased_at": 0},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
@@ -400,7 +396,6 @@ class TestSalesStats:
         ).json()
         client.post(
             "/buy/prod-1",
-            json={"purchased_at": 1},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -458,12 +453,10 @@ class TestSalesStats:
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/seller1-prod",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         client.post(
             "/buy/seller2-prod",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -520,7 +513,6 @@ class TestSalesStats:
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/test-prod",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -564,7 +556,6 @@ class TestSalesStats:
         for i, product_id in enumerate(product_ids):
             client.post(
                 f"/buy/{product_id}",
-                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
         
@@ -626,7 +617,6 @@ class TestLeaderboard:
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/test-prod",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -709,10 +699,23 @@ class TestLeaderboard:
         )
         
         set_phase(Phase.BUYER_SHOPPING)
-        client.post("/buy/s0-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
-        client.post("/buy/s0-p2", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
-        client.post("/buy/s1-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
-        client.post("/buy/s2-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+
+        client.post(
+            "/buy/s0-p1",
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        client.post(
+            "/buy/s0-p2",
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        client.post(
+            "/buy/s1-p1",
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
+        client.post(
+            "/buy/s2-p1",
+            headers={"Authorization": f"Bearer {buyer['auth_token']}"}
+        )
         
         # Get leaderboard
         response = client.get("/buy/stats/leaderboard")
@@ -762,7 +765,6 @@ class TestLeaderboard:
             ).json()
             client.post(
                 "/buy/popular-prod",
-                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
@@ -818,7 +820,6 @@ class TestLeaderboard:
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/s1-prod",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
         
@@ -867,7 +868,6 @@ class TestLeaderboard:
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/free-prod",
-            json={"purchased_at": 0},
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
         
@@ -911,7 +911,6 @@ class TestLeaderboard:
         for i, product_id in enumerate(product_ids):
             client.post(
                 f"/buy/{product_id}",
-                json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
         
