@@ -12,6 +12,8 @@ from pathlib import Path
 from openai import OpenAI
 from sqlalchemy.orm import Session
 
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY") or "dummy"
+
 # Add parent directory to path to import app modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
