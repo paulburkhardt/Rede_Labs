@@ -226,29 +226,34 @@ async def create_listings():
     timeout_seconds = timeout_minutes * 60
     
     for seller in sellers:
-        prompt = """
+        prompt = f"""
 Call /createProduct to create a product.
 
+Your seller ID: {seller.id}
+Your auth token: {seller.token}
+
+Use the auth token in the Authorization header as "Bearer {seller.token}" when making API calls.
+
 Response format:
-{
+{{
     "product_id": "123", # id of the product you created
-}
+}}
         """
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(seller["url"], prompt),
+                send_message_to_agent(seller.url, prompt),
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
-            timeout_msg = f"Seller {seller['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            timeout_msg = f"Seller {seller.id} timed out after {timeout_minutes} minutes and lost their chance"
             print(timeout_msg)
             if battle_context:
                 record_battle_event(battle_context, timeout_msg)
         except Exception as e:
             # Log other errors but continue with other buyers
-            error_msg = f"Error communicating with seller {seller['id']}: {str(e)}"
+            error_msg = f"Error communicating with seller {seller.id}: {str(e)}"
             print(error_msg)
             if battle_context:
                 record_battle_event(battle_context, error_msg)
@@ -318,32 +323,37 @@ async def buyers_buy_products():
     timeout_seconds = timeout_minutes * 60
     
     for buyer in buyers:
-        prompt = """
-Call /search?q=keyword to find your product you want to buy. You can call /product/{id} to get more details about the product.
+        prompt = f"""
+Call /search?q=keyword to find your product you want to buy. You can call /product/{{id}} to get more details about the product.
+
+Your buyer ID: {buyer.id}
+Your auth token: {buyer.token}
+
+Use the auth token in the Authorization header as "Bearer {buyer.token}" when making API calls.
 
 Response even if you decided not to buy a product.
 
 Response format:
-{
+{{
     "product_id": "123", # id of the product you bought, null if you decided not to buy a product
     "decision": "buy" or "not buy"
-}
+}}
         """
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(buyer["url"], prompt),
+                send_message_to_agent(buyer.url, prompt),
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
-            timeout_msg = f"Buyer {buyer['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            timeout_msg = f"Buyer {buyer.id} timed out after {timeout_minutes} minutes and lost their chance"
             print(timeout_msg)
             if battle_context:
                 record_battle_event(battle_context, timeout_msg)
         except Exception as e:
             # Log other errors but continue with other buyers
-            error_msg = f"Error communicating with buyer {buyer['id']}: {str(e)}"
+            error_msg = f"Error communicating with buyer {buyer.id}: {str(e)}"
             print(error_msg)
             if battle_context:
                 record_battle_event(battle_context, error_msg)
@@ -354,29 +364,34 @@ async def sellers_update_listings():
     timeout_seconds = timeout_minutes * 60
     
     for seller in sellers:
-        prompt = """
+        prompt = f"""
 Call /updateProduct to update your product.
 
+Your seller ID: {seller.id}
+Your auth token: {seller.token}
+
+Use the auth token in the Authorization header as "Bearer {seller.token}" when making API calls.
+
 Response format:
-{
+{{
     "product_id": "123", # id of the product you updated
-}
+}}
         """
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(seller["url"], prompt),
+                send_message_to_agent(seller.url, prompt),
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
-            timeout_msg = f"Seller {seller['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            timeout_msg = f"Seller {seller.id} timed out after {timeout_minutes} minutes and lost their chance"
             print(timeout_msg)
             if battle_context:
                 record_battle_event(battle_context, timeout_msg)
         except Exception as e:
             # Log other errors but continue with other sellers
-            error_msg = f"Error communicating with seller {seller['id']}: {str(e)}"
+            error_msg = f"Error communicating with seller {seller.id}: {str(e)}"
             print(error_msg)
             if battle_context:
                 record_battle_event(battle_context, error_msg)
