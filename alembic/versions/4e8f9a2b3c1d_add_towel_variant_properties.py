@@ -1,7 +1,7 @@
 """add towel variant properties
 
 Revision ID: 4e8f9a2b3c1d
-Revises: 2db08d31b570
+Revises: bd3be98698d9
 Create Date: 2025-10-29 21:59:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '4e8f9a2b3c1d'
-down_revision = '2db08d31b570'
+down_revision = 'bd3be98698d9'
 branch_labels = None
 depends_on = None
 
