@@ -42,7 +42,7 @@ streaming           = true
 [[skills]]
 id = "create_product"
 name = "Create Product"
-description = "Create a new product listing with name, descriptions, price, and images"
+description = "Create premium product listings with sophisticated descriptions and luxury positioning. REQUIRED: Must include at least one product image - products cannot be created without images. Use get_available_images to select images."
 tags = ["product", "creation", "marketplace"]
 examples = [
     "Create a new towel product listing",

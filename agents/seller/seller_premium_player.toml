@@ -42,7 +42,7 @@ streaming = true
 [[skills]]
 id = "create_product"
 name = "Create Product"
-description = "Create premium product listings with sophisticated descriptions and luxury positioning"
+description = "Create premium product listings with sophisticated descriptions and luxury positioning. REQUIRED: Must include at least one product image - products cannot be created without images. Use get_available_images to select images."
 tags = ["product", "creation", "luxury"]
 examples = [
     "Create a premium product listing with detailed craftsmanship description",
