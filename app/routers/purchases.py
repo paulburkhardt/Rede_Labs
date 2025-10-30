@@ -7,6 +7,7 @@ from app.schemas.purchase import PurchaseCreate, PurchaseResponse
 from app.models.purchase import Purchase
 from app.models.product import Product
 from app.models.buyer import Buyer
+from app.services.phase_manager import ensure_phase, Phase
 
 router = APIRouter(prefix="/buy", tags=["purchases"])
 
@@ -36,7 +37,9 @@ def create_purchase(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
+    ensure_phase(db, [Phase.BUYER_SHOPPING])
+
     # Create purchase record
     db_purchase = Purchase(
         product_id=product_id,

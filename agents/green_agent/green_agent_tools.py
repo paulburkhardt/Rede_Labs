@@ -19,6 +19,7 @@ import asyncio
 import toml
 from pathlib import Path
 import os
+from app.services.phase_manager import Phase
 import subprocess
 import sys
 
@@ -47,6 +48,27 @@ class Buyer(NamedTuple):
 
 sellers: list[Seller] = []
 buyers: list[Buyer] = []
+
+
+def change_phase(phase: Phase) -> None:
+    """
+    Update the marketplace backend to the specified phase.
+    """
+    headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+    response = requests.post(
+        f"{api_url}/admin/phase",
+        json={"phase": phase.value},
+        headers=headers,
+    )
+    if response.status_code != 200:
+        raise Exception(
+            f"Failed to update marketplace phase to {phase.value}: {response.text}"
+        )
+
+    if battle_context:
+        record_battle_event(
+            battle_context, f"Marketplace phase set to '{phase.value}'"
+        )
 
 
 def clear_database():
@@ -220,19 +242,35 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
         print(buyers)
 
         # Day 1: Create listings
+        change_phase(Phase.SELLER_MANAGEMENT)
         await create_listings()
         await create_ranking()
+
+        change_phase(Phase.BUYER_SHOPPING)
         await buyers_buy_products()
 
         for i in range(days - 1):
             await update_ranking()
+
+            change_phase(Phase.SELLER_MANAGEMENT)
             await sellers_update_listings()
+
+            change_phase(Phase.BUYER_SHOPPING)
             await buyers_buy_products()
 
     except Exception as e:
         error_msg = f"Error orchestrating battle: {str(e)}"
         record_battle_event(battle_context, error_msg)
         return error_msg
+
+    finally:
+        try:
+            change_phase(Phase.OPEN)
+        except Exception as phase_error:
+            warning = f"Failed to reset marketplace phase: {phase_error}"
+            if battle_context:
+                record_battle_event(battle_context, warning)
+            print(warning)
 
     await report_leaderboard()
 

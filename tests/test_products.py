@@ -1,6 +1,8 @@
 """Integration tests for product endpoints"""
 import pytest
 
+from app.services.phase_manager import Phase
+
 
 class TestProductCreation:
     """Test product creation endpoint"""
@@ -91,6 +93,28 @@ class TestProductCreation:
         assert response2.status_code == 400
         assert "already exists" in response2.json()["detail"]
 
+    def test_create_product_blocked_outside_seller_phase(
+        self, client, sample_seller, sample_images, set_phase
+    ):
+        """Ensure product creation is gated by the seller phase"""
+        product_data = {
+            "name": "Blocked Product",
+            "short_description": "Should not be created",
+            "long_description": "Attempted during buyer phase",
+            "price": 1500,
+            "image_ids": [sample_images["01"][0].id],
+        }
+
+        set_phase(Phase.BUYER_SHOPPING)
+        response = client.post(
+            "/product/blocked-product",
+            json=product_data,
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+
+        assert response.status_code == 403
+        assert "phase" in response.json()["detail"]
+
 
 class TestProductUpdate:
     """Test product update endpoint"""
@@ -172,6 +196,20 @@ class TestProductUpdate:
         
         assert response.status_code == 404
         assert response.json()["detail"] == "Product not found"
+
+    def test_update_product_blocked_outside_seller_phase(
+        self, client, sample_product, set_phase
+    ):
+        """Ensure product updates are rejected when phase is not seller"""
+        set_phase(Phase.BUYER_SHOPPING)
+        response = client.patch(
+            f"/product/{sample_product['id']}",
+            json={"price": 1999},
+            headers={"Authorization": f"Bearer {sample_product['seller']['auth_token']}"}
+        )
+
+        assert response.status_code == 403
+        assert "phase" in response.json()["detail"]
 
 
 class TestProductRetrieval:
@@ -395,7 +433,9 @@ class TestProductRanking:
 class TestRankingWithPurchaseStats:
     """Test ranking updates based on purchase statistics"""
     
-    def test_update_rankings_based_on_purchase_stats(self, client, sample_images):
+    def test_update_rankings_based_on_purchase_stats(
+        self, client, sample_images, set_phase
+    ):
         """Test complete workflow: create sellers, products, purchases, update rankings"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -432,6 +472,7 @@ class TestRankingWithPurchaseStats:
         )
         
         # Make purchases - more for product1
+        set_phase(Phase.BUYER_SHOPPING)
         for i in range(5):
             client.post(
                 "/buy/popular-1",
