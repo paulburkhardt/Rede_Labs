@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List, Dict
 
 
@@ -25,7 +25,14 @@ class ProductCreate(BaseModel):
     short_description: str
     long_description: str
     price: int
-    image_ids: List[str]  # List of image IDs from the database
+    image_ids: List[str]  # List of image IDs from the database (REQUIRED - at least one image)
+    
+    @field_validator('image_ids')
+    @classmethod
+    def validate_image_ids(cls, v):
+        if not v or len(v) == 0:
+            raise ValueError('At least one image_id is required. Products must have images.')
+        return v
 
 
 class ProductUpdate(BaseModel):

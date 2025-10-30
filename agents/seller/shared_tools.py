@@ -33,6 +33,8 @@ def create_product(
     """
     Create a new product in the marketplace.
     
+    IMPORTANT: Products MUST have at least one image. The image_ids parameter is REQUIRED.
+    
     Args:
         auth_token: Seller's authentication token
         product_id: Unique identifier for the product
@@ -40,7 +42,7 @@ def create_product(
         short_description: Brief product description
         long_description: Detailed product description
         price: Price in cents (e.g., 2999 for $29.99)
-        image_ids: List of image IDs from the database (must be from same product_number)
+        image_ids: List of image IDs from the database (REQUIRED - at least one image, must be from same product_number)
     
     Returns:
         dict: Response from the API containing product creation status
@@ -53,7 +55,7 @@ def create_product(
         ...     short_description="Soft and absorbent",
         ...     long_description="Made from 100% Egyptian cotton",
         ...     price=2999,
-        ...     image_ids=["img-1", "img-2"]
+        ...     image_ids=["img-1", "img-2"]  # REQUIRED: Must provide at least one image
         ... )
     """
     payload = {
@@ -99,6 +101,8 @@ def update_product(
     """
     Update an existing product.
     
+    NOTE: If updating image_ids, you must provide at least one image. Products cannot have zero images.
+    
     Args:
         auth_token: Seller's authentication token
         product_id: ID of the product to update
@@ -106,7 +110,7 @@ def update_product(
         short_description: New brief description (optional)
         long_description: New detailed description (optional)
         price: New price in cents (optional)
-        image_ids: New list of image IDs (must be from same product_number, optional)
+        image_ids: New list of image IDs (if provided, must include at least one image from same product_number, optional)
     
     Returns:
         dict: Response from the API containing update status
@@ -116,7 +120,7 @@ def update_product(
         ...     auth_token="abc123",
         ...     product_id="towel-001",
         ...     price=2499,  # Reduce price to $24.99
-        ...     image_ids=["img-3", "img-4"]  # Change images
+        ...     image_ids=["img-3", "img-4"]  # Change images (must have at least one)
         ... )
     """
     payload = {}
@@ -221,6 +225,8 @@ def get_available_images():
     Get all available images grouped by product_number.
     Returns image descriptions (not base64) organized by category.
     
+    IMPORTANT: You must select at least one image when creating a product. Products cannot be created without images.
+    
     Returns:
         dict: Images grouped by product_number
     
@@ -253,6 +259,8 @@ def get_available_images():
 def get_images_by_product_number(product_number: str):
     """
     Get all images for a specific product_number category.
+    
+    Use this to select images for your product. Remember: products MUST have at least one image.
     
     Args:
         product_number: The product number category (e.g., "01", "02")

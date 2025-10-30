@@ -147,8 +147,11 @@ class TestProductCreationWithImages:
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
-        assert response.status_code == 400
-        assert "At least one image_id is required" in response.json()["detail"]
+        assert response.status_code == 422  # Pydantic validation error
+        response_data = response.json()
+        # Check that the validation error mentions images are required
+        assert "image_ids" in str(response_data).lower()
+        assert "required" in str(response_data).lower() or "at least one" in str(response_data).lower()
     
     def test_create_product_with_nonexistent_image_ids(self, client, sample_seller):
         """Test that using non-existent image IDs fails"""

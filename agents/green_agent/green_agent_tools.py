@@ -20,6 +20,8 @@ import toml
 from pathlib import Path
 import os
 from app.services.phase_manager import Phase
+import subprocess
+import sys
 
 
 # Global state to store battle context
@@ -67,6 +69,101 @@ def change_phase(phase: Phase) -> None:
         record_battle_event(
             battle_context, f"Marketplace phase set to '{phase.value}'"
         )
+
+
+def clear_database():
+    """Clear all data from the database tables by running a script in the correct environment"""
+    try:
+        print("🗑️  Clearing database...")
+        
+        # Create a simple Python script to clear the database
+        project_root = Path(__file__).parent.parent.parent
+        clear_script = """
+import sys
+sys.path.insert(0, '.')
+from app.database import SessionLocal, Base, engine
+from app.models.purchase import Purchase
+from app.models.product import Product
+from app.models.buyer import Buyer
+from app.models.seller import Seller
+from app.models.image import Image
+
+# Drop all tables and recreate them
+Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)
+print("Tables cleared and recreated")
+"""
+        
+        # Run the script using uv run to ensure correct environment
+        env = os.environ.copy()
+        result = subprocess.run(
+            ["uv", "run", "python", "-c", clear_script],
+            cwd=str(project_root),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            print("✅ Database cleared and tables recreated")
+        else:
+            print(f"⚠️  Warning: Failed to clear database (code {result.returncode})")
+            print(f"   stderr: {result.stderr}")
+            
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to clear database: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def reload_images():
+    """Reload images from the images directory using the creation script"""
+    try:
+        print("📸 Reloading images from images directory...")
+        
+        # Get the path to the images directory and script
+        project_root = Path(__file__).parent.parent.parent
+        images_dir = project_root / "images"
+        script_path = images_dir / "create_image_descriptions.py"
+        
+        print(f"   Script path: {script_path}")
+        print(f"   Working directory: {images_dir}")
+        
+        if not script_path.exists():
+            print(f"⚠️  Warning: Image creation script not found at {script_path}")
+            return
+        
+        # Run the script to reload images using uv run to ensure correct environment
+        # Pass environment variables to ensure it uses the same database
+        env = os.environ.copy()
+        result = subprocess.run(
+            ["uv", "run", "python", str(script_path)],
+            cwd=str(images_dir),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode == 0:
+            print("✅ Images reloaded successfully")
+            # Print last few lines of output to confirm
+            output_lines = result.stdout.strip().split('\n')
+            if len(output_lines) > 5:
+                print("   Last lines of output:")
+                for line in output_lines[-5:]:
+                    print(f"   {line}")
+        else:
+            print(f"⚠️  Warning: Image reload script failed with code {result.returncode}")
+            print(f"   stderr: {result.stderr}")
+            print(f"   stdout: {result.stdout}")
+            
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to reload images: {e}")
+        import traceback
+        traceback.print_exc()
+
 
 @ab.tool
 async def handle_incoming_message(message: str) -> str:
@@ -133,14 +230,14 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
 
     record_battle_event(battle_context, "Battle orchestration started")
 
+    # Clear database and reload images at the start
+    clear_database()
+    reload_images()
+
     days: int = 5  # Total days in the battle
-    print("🌴 Battle orchestration started")
     try:
-        print("🌴 Creating sellers and buyer")
         await create_sellers(seller_infos)
-        print("🌴 Created sellers")
         await create_buyer()
-        print("🌴 Created buyer")
         print(sellers)
         print(buyers)
 
