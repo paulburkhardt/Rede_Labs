@@ -40,9 +40,46 @@ defaultOutputModes = ["text"]
 streaming = true
 
 [[skills]]
-id = "choose_product"
-name = "Choose Product"
-description = "Choose the best product based on price and positioning."
-tags = ["buying", "evaluation"]
-examples = ["Choose the best product based on price and positioning."]
+id = "search_products"
+name = "Search Products"
+description = "Search marketplace for products, focusing on premium-positioned options"
+tags = ["search", "discovery", "premium"]
+examples = [
+    "Search for bath towels",
+    "Find all available products",
+    "Browse marketplace offerings"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Examine product details to assess quality signals and premium positioning"
+tags = ["product", "details", "quality-assessment"]
+examples = [
+    "Check product details for quality indicators",
+    "Review product description and pricing",
+    "Examine premium positioning signals"
+]
+
+[[skills]]
+id = "compare_products"
+name = "Compare Products"
+description = "Compare multiple products to identify which has the best premium positioning and price signals"
+tags = ["comparison", "analysis", "premium"]
+examples = [
+    "Compare products to find premium option",
+    "Analyze price differences for quality signals",
+    "Evaluate which product signals best quality"
+]
+
+[[skills]]
+id = "purchase_product"
+name = "Purchase Product"
+description = "Purchase the product that best signals quality through premium pricing and positioning"
+tags = ["purchase", "buying", "decision"]
+examples = [
+    "Buy the premium-positioned product",
+    "Purchase the product with best quality signals",
+    "Complete purchase of chosen product"
+]
 

@@ -38,8 +38,45 @@ defaultOutputModes = ["text"]
 streaming = true
 
 [[skills]]
-id = "choose_product"
-name = "Choose Product"
-description = "Choose the best product based on price and positioning."
-tags = ["buying", "evaluation"]
-examples = ["Choose the best product based on price and positioning."]
+id = "search_products"
+name = "Search Products"
+description = "Search marketplace for products to thoroughly research quality options"
+tags = ["search", "discovery", "quality"]
+examples = [
+    "Search for bath towels to research",
+    "Find all available products for comparison",
+    "Browse marketplace for quality options"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Carefully examine product details for quality indicators, specifications, and technical details"
+tags = ["product", "details", "quality-assessment"]
+examples = [
+    "Read full product description for quality details",
+    "Check for specific specifications (GSM, materials, dimensions)",
+    "Analyze product for quality indicators"
+]
+
+[[skills]]
+id = "compare_products"
+name = "Compare Products"
+description = "Compare products based on quality specifications, materials, and detailed descriptions"
+tags = ["comparison", "analysis", "quality"]
+examples = [
+    "Compare quality specifications across products",
+    "Analyze which product has best technical details",
+    "Evaluate long-term value and durability"
+]
+
+[[skills]]
+id = "purchase_product"
+name = "Purchase Product"
+description = "Purchase the product with the best quality indicators and specifications, regardless of price"
+tags = ["purchase", "buying", "decision"]
+examples = [
+    "Buy the highest quality product",
+    "Purchase product with best specifications",
+    "Complete purchase of superior quality option"
+]
