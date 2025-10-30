@@ -11,6 +11,7 @@ from app.models.seller import Seller
 from app.models.product import Product
 from app.models.purchase import Purchase
 from app.models.buyer import Buyer
+from app.models.metadata import Metadata
 from app.config import settings
 
 # this is the Alembic Config object, which provides

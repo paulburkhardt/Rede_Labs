@@ -7,6 +7,7 @@ from app.main import app
 from app.database import Base, get_db
 from app.config import settings
 from app.models import Image
+from app.services.phase_manager import Phase
 
 # Mock base64 image (1x1 transparent PNG)
 MOCK_BASE64_IMAGE = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
@@ -51,6 +52,10 @@ def client(db_session):
             raise ValueError("Admin API key is not set")
         settings.admin_api_key = admin_key
         test_client.headers.update({"X-Admin-Key": admin_key})
+        response = test_client.post(
+            "/admin/phase", json={"phase": Phase.SELLER_MANAGEMENT.value}
+        )
+        assert response.status_code == 200, response.text
         yield test_client
     app.dependency_overrides.clear()
 
@@ -132,6 +137,21 @@ def sample_images(db_session):
         "03": images[5:9],
         "uncategorized": images[9]
     }
+
+
+@pytest.fixture
+def set_phase(client):
+    """Utility fixture to change marketplace phase during a test."""
+
+    def _set(phase: Phase):
+        response = client.post(
+            "/admin/phase",
+            json={"phase": phase.value if isinstance(phase, Phase) else phase},
+        )
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    return _set
 
 
 @pytest.fixture

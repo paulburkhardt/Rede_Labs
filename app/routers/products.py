@@ -14,6 +14,7 @@ from app.schemas.product import (
 from app.models.product import Product
 from app.models.seller import Seller
 from app.models.image import Image
+from app.services.phase_manager import ensure_phase, Phase
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -37,6 +38,8 @@ def create_product(
     seller = db.query(Seller).filter(Seller.auth_token == token).first()
     if not seller:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
+
+    ensure_phase(db, [Phase.SELLER_MANAGEMENT])
     
     # Check if product with this ID already exists
     existing_product = db.query(Product).filter(Product.id == id).first()
@@ -120,6 +123,8 @@ def update_product(
     # Verify the product belongs to this seller
     if db_product.seller_id != seller.id:
         raise HTTPException(status_code=403, detail="You can only update your own products")
+
+    ensure_phase(db, [Phase.SELLER_MANAGEMENT])
     
     # Update fields if provided
     if product.name is not None:
