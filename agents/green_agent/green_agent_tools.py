@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Dummy Green Agent Tools
 
@@ -21,7 +21,6 @@ from pathlib import Path
 import os
 
 
-
 # Global state to store battle context
 battle_context = None
 
@@ -37,13 +36,16 @@ class Seller(NamedTuple):
     url: str
     token: str
 
+
 class Buyer(NamedTuple):
     id: str
     url: str
     token: str
 
-sellers : list[Seller] = []
-buyers : list[Buyer] = []
+
+sellers: list[Seller] = []
+buyers: list[Buyer] = []
+
 
 @ab.tool
 async def handle_incoming_message(message: str) -> str:
@@ -130,15 +132,14 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
             await update_ranking()
             await sellers_update_listings()
             await buyers_buy_products()
-        
+
     except Exception as e:
         error_msg = f"Error orchestrating battle: {str(e)}"
         record_battle_event(battle_context, error_msg)
         return error_msg
-    
+
     await report_leaderboard()
 
-    
 
 async def create_sellers(seller_infos: list):
     for seller_info in seller_infos:
@@ -152,50 +153,57 @@ async def create_sellers(seller_infos: list):
         print("🥥 Created seller")
         if response.status_code != 200:
             raise Exception(f"Failed to create seller: {response.text}")
-        
+
         json = response.json()
         id = json.get("id")
         token = json.get("auth_token")
         sellers.append(Seller(id=id, url=seller_info.get("agent_url"), token=token))
 
+
 async def create_buyer():
     """Create buyers based on configuration from tools/scenario.toml"""
     # Load scenario configuration
     scenario_path = Path(__file__).parent.parent.parent / "tools" / "scenario.toml"
-    
+
     if not scenario_path.exists():
         raise Exception(f"Scenario file not found at {scenario_path}")
-    
+
     scenario_config = toml.load(scenario_path)
-    
+
     # Filter agents where card filename starts with "buyer_"
     buyer_agents = [
-        agent for agent in scenario_config.get("agents", [])
+        agent
+        for agent in scenario_config.get("agents", [])
         if Path(agent["card"]).name.startswith("buyer_")
     ]
-    
+
     # Create buyers based on the configuration
     for buyer_agent in buyer_agents:
         agent_host = buyer_agent.get("agent_host")
         agent_port = buyer_agent.get("agent_port")
-        
+
         if not agent_port:
-            raise Exception(f"No agent_port found for buyer agent: {buyer_agent.get('name')}")
-        
+            raise Exception(
+                f"No agent_port found for buyer agent: {buyer_agent.get('name')}"
+            )
+
         # Create buyer via API
         response = requests.post(
             api_url + "/createBuyer",
             headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
-        
+
         if response.status_code != 200:
             raise Exception(f"Failed to create buyer: {response.text}")
-        
+
         buyer_data = response.json()
         # Store buyer with URL constructed from agent configuration
         # todo: is that a problem that the buyer has to run local (because of the http://)?
         url = f"http://{agent_host}:{agent_port}"
-        buyers.append(Buyer(id=buyer_data.get("id"), url=url, token=buyer_data.get("auth_token")))
+        buyers.append(
+            Buyer(id=buyer_data.get("id"), url=url, token=buyer_data.get("auth_token"))
+        )
+
 
 async def create_participants(no_participants: int, route: str):
     for i in range(no_participants):
@@ -206,7 +214,7 @@ async def create_participants(no_participants: int, route: str):
         )
         if response.status_code != 200:
             raise Exception(f"Failed to create seller: {response.text}")
-        
+
         # todo: confirm if that actually works
         if route == "/createSeller":
             sellers.append(response.json())
@@ -215,10 +223,11 @@ async def create_participants(no_participants: int, route: str):
 
         return response.json()
 
+
 async def create_listings():
     timeout_minutes = 2  # Timeout duration in minutes
     timeout_seconds = timeout_minutes * 60
-    
+
     for seller in sellers:
         prompt = f"""
 Call /createProduct to create a product.
@@ -236,8 +245,7 @@ Response format:
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(seller.url, prompt),
-                timeout=timeout_seconds
+                send_message_to_agent(seller.url, prompt), timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
@@ -252,30 +260,29 @@ Response format:
             if battle_context:
                 record_battle_event(battle_context, error_msg)
 
+
 async def create_ranking():
     # Get all products and assign random rankings
     response = requests.get(f"{api_url}/search?q=")
     if response.status_code != 200:
         raise Exception(f"Failed to get products: {response.text}")
-    
+
     products = response.json()
     random_ranking = list(range(1, len(products) + 1))
     random.shuffle(random_ranking)
-    
+
     # Prepare batch update payload
     rankings = [
         {"product_id": product["id"], "ranking": random_ranking[i]}
         for i, product in enumerate(products)
     ]
-    
+
     # Update all rankings in one call
     update_response = requests.patch(
-        f"{api_url}/product/batch/rankings",
-        json={"rankings": rankings}
+        f"{api_url}/product/batch/rankings", json={"rankings": rankings}
     )
     if update_response.status_code != 200:
         raise Exception(f"Failed to set initial rankings: {update_response.text}")
-
 
 
 async def update_ranking():
@@ -286,10 +293,10 @@ async def update_ranking():
     if response.status_code != 200:
         raise Exception(f"Failed to get sales stats: {response.text}")
     sales_stats = response.json()
-    
+
     # Sort by number of purchases
     sorted_stats = sorted(sales_stats, key=lambda x: x["purchase_count"], reverse=True)
-    
+
     # Prepare batch update payload
     rankings = []
     for rank, stat in enumerate(sorted_stats, start=1):
@@ -300,22 +307,20 @@ async def update_ranking():
             products = response.json()
             for product in products:
                 rankings.append({"product_id": product["id"], "ranking": rank})
-    
+
     # Update all rankings in one call
     if rankings:
         update_response = requests.patch(
-            f"{api_url}/product/batch/rankings",
-            json={"rankings": rankings}
+            f"{api_url}/product/batch/rankings", json={"rankings": rankings}
         )
         if update_response.status_code != 200:
             print(f"Warning: Failed to update rankings: {update_response.text}")
 
 
-
 async def buyers_buy_products():
     timeout_minutes = 2  # Timeout duration in minutes
     timeout_seconds = timeout_minutes * 60
-    
+
     for buyer in buyers:
         prompt = f"""
 Call /search?q=keyword to find your product you want to buy. You can call /product/{{id}} to get more details about the product.
@@ -336,8 +341,7 @@ Response format:
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(buyer.url, prompt),
-                timeout=timeout_seconds
+                send_message_to_agent(buyer.url, prompt), timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
@@ -356,7 +360,7 @@ Response format:
 async def sellers_update_listings():
     timeout_minutes = 2  # Timeout duration in minutes
     timeout_seconds = timeout_minutes * 60
-    
+
     for seller in sellers:
         prompt = f"""
 Call /updateProduct to update your product.
@@ -374,8 +378,7 @@ Response format:
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(seller.url, prompt),
-                timeout=timeout_seconds
+                send_message_to_agent(seller.url, prompt), timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
@@ -390,69 +393,70 @@ Response format:
             if battle_context:
                 record_battle_event(battle_context, error_msg)
 
+
 async def report_leaderboard():
     """Queries the purchase history and reports a leaderboard (total revenue,
     etc.) to AgentBeats."""
     global battle_context
-    
+
     if not battle_context:
         print("Warning: Battle context not initialized")
         return
-    
+
     try:
         # Step 1: Fetch leaderboard data from API
         record_battle_event(battle_context, "Fetching leaderboard data")
         response = requests.get(f"{api_url}/buy/stats/leaderboard")
-        
+
         if response.status_code != 200:
             error_msg = f"Failed to fetch leaderboard: {response.text}"
             record_battle_event(battle_context, error_msg)
             return
-        
+
         leaderboard_data = response.json()
-        
+
         # Step 2: Calculate winner and scores
         winner = None
         winner_score = 0
         scores = {}
-        
+
         for entry in leaderboard_data:
             seller_id = entry["seller_id"]
             revenue = entry["total_revenue_cents"]
             purchase_count = entry["purchase_count"]
-            
+
             # Score is based on total revenue
             score = revenue
             scores[seller_id] = {
                 "revenue_cents": revenue,
                 "revenue_dollars": entry["total_revenue_dollars"],
                 "purchase_count": purchase_count,
-                "score": score
+                "score": score,
             }
-            
+
             record_battle_event(
-                battle_context, 
-                f"Seller {seller_id}: ${entry['total_revenue_dollars']:.2f} revenue, {purchase_count} purchases"
+                battle_context,
+                f"Seller {seller_id}: ${entry['total_revenue_dollars']:.2f} revenue, {purchase_count} purchases",
             )
-            
+
             if score > winner_score:
                 winner_score = score
                 winner = seller_id
-        
+
         # Step 3: Report final result
         result_detail = {
             "leaderboard": leaderboard_data,
             "scores": scores,
             "winner": winner,
-            "winner_revenue": winner_score / 100.0 if winner_score else 0
+            "winner_revenue": winner_score / 100.0 if winner_score else 0,
         }
-        
+
         record_battle_result(
             battle_context,
             f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total revenue",
-            result_detail
+            result_detail,
         )
-        
+
     except Exception as e:
         error_msg = f"Error reporting leaderboard: {str(e)}"
         record_battle_event(battle_context, error_msg)
