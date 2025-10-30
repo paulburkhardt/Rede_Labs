@@ -22,7 +22,7 @@ TEMP_SCENARIO_PATH = SCRIPT_DIR / "scenario.toml"
 
 # Default configuration
 DEFAULT_MODEL_TYPE = os.getenv("MODEL_TYPE", "openai")
-DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "gpt-5-mini")
+DEFAULT_MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 DEFAULT_TMUX_SESSION = "agentbeats-marketplace"
 
 # Port configuration

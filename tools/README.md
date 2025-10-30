@@ -53,7 +53,7 @@ uv run tools/start_agents.py --only-white-agents --tmux-session my-simulation
 - `--num-buyers N`: Number of buyer agents to start (default: from `simulation_config.toml`)
 - `--num-sellers N`: Number of seller agents to start (default: 1)
 - `--model-type TYPE`: Model type to use (default: from `MODEL_TYPE` env var or "openai")
-- `--model-name NAME`: Model name to use (default: from `MODEL_NAME` env var or "gpt-5-mini")
+- `--model-name NAME`: Model name to use (default: from `MODEL_NAME` env var or "gpt-4o-mini")
 - `--tmux-session NAME`: Name of the tmux session (default: "agentbeats-marketplace")
 
 #### What It Does
@@ -329,7 +329,7 @@ Both scripts respect the following environment variables:
 ```bash
 # Model configuration
 MODEL_TYPE=openai
-MODEL_NAME=gpt-5-mini
+MODEL_NAME=gpt-4o-mini
 
 # Port configuration
 GREEN_AGENT_PORT=9110
