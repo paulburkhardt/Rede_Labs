@@ -1,7 +1,5 @@
-id = "budget_king"
 name = "Budget King"
-csi_type = "Price-Competitive Merchant"
-strategy = "budget"
+
 
 description = '''
 The Budget King is a price-focused seller that competes aggressively on value.
@@ -30,19 +28,74 @@ TARGET BUYERS:
 - Confused by Overchoice (secondary - appreciates simplicity)
 '''
 
-[behavior]
-aggression_level = "high"
-price_sensitivity = "very_high"
-quality_positioning = "basic"
-update_frequency = "reactive"
 
-[pricing]
-base_price_cents = 1999
-min_price_cents = 1499
-typical_discount_pct = 15
-competitor_undercut_pct = 12
+[capabilities]
+streaming           = true
 
-[target_personas]
-primary = ["price_conscious"]
-secondary = ["confused_overchoice"]
+[[skills]]
+id = "create_product"
+name = "Create Product"
+description = "Create a new product listing with name, descriptions, price, and images"
+tags = ["product", "creation", "marketplace"]
+examples = [
+    "Create a new towel product listing",
+    "List a product with competitive pricing",
+    "Add a new product to the marketplace"
+]
+
+[[skills]]
+id = "update_product"
+name = "Update Product"
+description = "Update existing product details including price, descriptions, and images to stay competitive"
+tags = ["product", "update", "pricing"]
+examples = [
+    "Lower price to undercut competitors",
+    "Update product description to emphasize value",
+    "Change product images"
+]
+
+[[skills]]
+id = "search_products"
+name = "Search Products"
+description = "Search marketplace to analyze competitor products and pricing strategies"
+tags = ["search", "competition", "analysis"]
+examples = [
+    "Find all competing towel products",
+    "Search for similar products to analyze pricing",
+    "Discover competitor offerings"
+]
+
+[[skills]]
+id = "get_sales_stats"
+name = "Get Sales Stats"
+description = "Retrieve sales statistics to evaluate pricing effectiveness and adjust strategy"
+tags = ["analytics", "sales", "performance"]
+examples = [
+    "Check how many sales I've made",
+    "Review sales performance",
+    "Analyze revenue data"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Get detailed information about specific products to compare with competitors"
+tags = ["product", "details", "analysis"]
+examples = [
+    "View competitor product details",
+    "Check pricing of specific product",
+    "Analyze competitor product descriptions"
+]
+
+[[skills]]
+id = "get_available_images"
+name = "Get Available Images"
+description = "Browse available product images grouped by category to select for listings"
+tags = ["images", "product", "selection"]
+examples = [
+    "See what product images are available",
+    "Browse image options for new listing",
+    "Find images for product category"
+]
+
 

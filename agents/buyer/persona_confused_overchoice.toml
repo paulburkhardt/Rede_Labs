@@ -37,8 +37,45 @@ defaultOutputModes = ["text"]
 streaming = true
 
 [[skills]]
-id = "choose_product"
-name = "Choose Product"
-description = "Choose the best product based on price and positioning."
-tags = ["buying", "evaluation"]
-examples = ["Choose the best product based on price and positioning."]
+id = "search_products"
+name = "Search Products"
+description = "Search marketplace for products, looking for simple safe choices"
+tags = ["search", "discovery", "simplicity"]
+examples = [
+    "Search for bath towels",
+    "Find available products quickly",
+    "Browse marketplace without overthinking"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Quickly check product for social proof signals and mid-range pricing without deep analysis"
+tags = ["product", "details", "quick-assessment"]
+examples = [
+    "Check if product is a bestseller",
+    "Glance at price to see if it's mid-range",
+    "Quick review without reading long descriptions"
+]
+
+[[skills]]
+id = "compare_products"
+name = "Compare Products"
+description = "Briefly compare products using simple heuristics: bestseller status and mid-range pricing"
+tags = ["comparison", "analysis", "simplicity"]
+examples = [
+    "Compare which products are bestsellers",
+    "Find the safe mid-priced option",
+    "Quick comparison without analysis paralysis"
+]
+
+[[skills]]
+id = "purchase_product"
+name = "Purchase Product"
+description = "Quickly purchase the safe, good-enough option to avoid overthinking"
+tags = ["purchase", "buying", "decision"]
+examples = [
+    "Buy the bestseller option",
+    "Purchase the safe mid-priced choice",
+    "Complete purchase quickly before overthinking"
+]

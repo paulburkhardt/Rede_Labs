@@ -1,7 +1,4 @@
-id = "premium_player"
 name = "Premium Player"
-csi_type = "Luxury Brand Merchant"
-strategy = "premium"
 
 description = '''
 The Premium Player positions products as luxury items with emphasis on quality and exclusivity.
@@ -32,19 +29,75 @@ TARGET BUYERS:
 - Recreational Hedonistic Shoppers (secondary)
 '''
 
-[behavior]
-aggression_level = "low"
-price_sensitivity = "low"
-quality_positioning = "luxury"
-update_frequency = "conservative"
+[capabilities]
+streaming = true
 
-[pricing]
-base_price_cents = 5999
-min_price_cents = 3999
-typical_premium_pct = 25
-max_discount_pct = 8
+[[skills]]
+id = "create_product"
+name = "Create Product"
+description = "Create premium product listings with sophisticated descriptions and luxury positioning"
+tags = ["product", "creation", "luxury"]
+examples = [
+    "Create a premium product listing with detailed craftsmanship description",
+    "List an exclusive product with luxury pricing",
+    "Add a high-end product to the marketplace"
+]
 
-[target_personas]
-primary = ["quality_seeker", "brand_conscious"]
-secondary = ["hedonistic_shopper"]
+[[skills]]
+id = "update_product"
+name = "Update Product"
+description = "Update product details to enhance premium positioning and maintain luxury brand image"
+tags = ["product", "update", "luxury"]
+examples = [
+    "Enhance product description with luxury language",
+    "Maintain premium pricing above market",
+    "Update images to showcase quality"
+]
+
+[[skills]]
+id = "search_products"
+name = "Search Products"
+description = "Analyze marketplace to identify positioning opportunities and maintain premium differentiation"
+tags = ["search", "competition", "positioning"]
+examples = [
+    "Research competitor products to maintain premium positioning",
+    "Identify market gaps for luxury offerings",
+    "Analyze competitor pricing to stay above market"
+]
+
+[[skills]]
+id = "get_sales_stats"
+name = "Get Sales Stats"
+description = "Monitor sales performance to validate premium pricing strategy and brand positioning"
+tags = ["analytics", "sales", "performance"]
+examples = [
+    "Check premium product sales performance",
+    "Validate luxury pricing strategy",
+    "Review revenue from high-margin products"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Examine competitor products to ensure superior quality messaging and premium differentiation"
+tags = ["product", "details", "analysis"]
+examples = [
+    "Compare my luxury descriptions with competitors",
+    "Analyze competitor quality claims",
+    "Ensure premium differentiation"
+]
+
+[[skills]]
+id = "get_available_images"
+name = "Get Available Images"
+description = "Select highest quality product images that convey luxury and exclusivity"
+tags = ["images", "product", "luxury"]
+examples = [
+    "Choose premium product images",
+    "Select images that showcase quality",
+    "Find luxury-appropriate product photography"
+]
+
+
+
 

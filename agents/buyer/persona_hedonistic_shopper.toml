@@ -40,8 +40,45 @@ defaultOutputModes = ["text"]
 streaming = true
 
 [[skills]]
-id = "choose_product"
-name = "Choose Product"
-description = "Choose the best product based on price and positioning."
-tags = ["buying", "evaluation"]
-examples = ["Choose the best product based on price and positioning."]
+id = "search_products"
+name = "Search Products"
+description = "Browse marketplace leisurely, enjoying the discovery of beautiful and luxurious products"
+tags = ["search", "discovery", "experience"]
+examples = [
+    "Browse bath towels for enjoyment",
+    "Discover premium and luxurious options",
+    "Explore marketplace for delightful finds"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Examine products for aesthetic appeal, sensory language, and emotional connection"
+tags = ["product", "details", "experience-assessment"]
+examples = [
+    "Read descriptions for luxury and sensory appeal",
+    "Check product images for visual beauty",
+    "Imagine the experience of owning the product"
+]
+
+[[skills]]
+id = "compare_products"
+name = "Compare Products"
+description = "Compare products based on aesthetic appeal, lifestyle language, and premium experience"
+tags = ["comparison", "analysis", "experience"]
+examples = [
+    "Compare which product feels most luxurious",
+    "Evaluate aesthetic and emotional appeal",
+    "Determine which sparks the most joy"
+]
+
+[[skills]]
+id = "purchase_product"
+name = "Purchase Product"
+description = "Purchase the product that offers the most delightful, premium, and emotionally satisfying experience"
+tags = ["purchase", "buying", "decision"]
+examples = [
+    "Buy the most luxurious option",
+    "Purchase the product that sparks joy",
+    "Complete purchase of the premium experience"
+]

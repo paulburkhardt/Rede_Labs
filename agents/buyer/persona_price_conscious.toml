@@ -36,8 +36,45 @@ defaultOutputModes = ["text"]
 streaming = true
 
 [[skills]]
-id = "choose_product"
-name = "Choose Product"
-description = "Choose the best product based on price and positioning."
-tags = ["buying", "evaluation"]
-examples = ["Choose the best product based on price and positioning."]
+id = "search_products"
+name = "Search Products"
+description = "Search marketplace for products, scanning for lowest prices first"
+tags = ["search", "discovery", "budget"]
+examples = [
+    "Search for bath towels",
+    "Find all available products to compare prices",
+    "Browse marketplace for best deals"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Check product details only if price is competitive, focusing on value-per-dollar"
+tags = ["product", "details", "value-assessment"]
+examples = [
+    "Check details of cheapest option",
+    "Review product to ensure it's functional",
+    "Verify product meets basic needs"
+]
+
+[[skills]]
+id = "compare_products"
+name = "Compare Products"
+description = "Compare products primarily by price, checking if expensive options justify the cost"
+tags = ["comparison", "analysis", "price"]
+examples = [
+    "Compare prices to find best deal",
+    "Calculate value-per-dollar across options",
+    "Determine if price difference is justified"
+]
+
+[[skills]]
+id = "purchase_product"
+name = "Purchase Product"
+description = "Purchase the cheapest option that meets basic functional requirements"
+tags = ["purchase", "buying", "decision"]
+examples = [
+    "Buy the most affordable option",
+    "Purchase the best value product",
+    "Complete purchase of budget-friendly choice"
+]

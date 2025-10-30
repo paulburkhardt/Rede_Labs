@@ -1,7 +1,4 @@
-id = "dynamic_optimizer"
 name = "Dynamic Optimizer"
-csi_type = "Data-Driven Adaptive Merchant"
-strategy = "dynamic"
 
 description = '''
 The Dynamic Optimizer uses market analysis and sales data to continuously optimize strategy.
@@ -38,26 +35,72 @@ TARGET BUYERS:
 - Secondary: Price-Conscious and Quality Seekers (middle ground)
 '''
 
-[behavior]
-aggression_level = "medium"
-price_sensitivity = "medium"
-quality_positioning = "balanced"
-update_frequency = "active"
+[capabilities]
+streaming = true
 
-[pricing]
-base_price_cents = 3499
-min_price_cents = 2499
-max_price_cents = 4999
-price_adjustment_pct = 12
+[[skills]]
+id = "create_product"
+name = "Create Product"
+description = "Create product listings with balanced, data-informed descriptions and mid-market pricing"
+tags = ["product", "creation", "optimization"]
+examples = [
+    "Create a product with optimized pricing and messaging",
+    "List a product with balanced value proposition",
+    "Add product with data-driven positioning"
+]
 
-[optimization]
-ab_testing = true
-performance_tracking = true
-competitive_analysis = true
-dynamic_pricing = true
+[[skills]]
+id = "update_product"
+name = "Update Product"
+description = "Dynamically update products based on sales performance and market analysis"
+tags = ["product", "update", "optimization"]
+examples = [
+    "Adjust price based on sales velocity",
+    "Update messaging to improve conversion",
+    "Optimize product based on performance data"
+]
 
-[target_personas]
-primary = ["confused_overchoice"]
-secondary = ["price_conscious", "quality_seeker"]
-tertiary = ["brand_conscious", "hedonistic_shopper"]
+[[skills]]
+id = "search_products"
+name = "Search Products"
+description = "Continuously analyze marketplace to identify pricing gaps and optimization opportunities"
+tags = ["search", "analysis", "optimization"]
+examples = [
+    "Analyze competitor pricing to find market gaps",
+    "Search for products to benchmark against",
+    "Identify optimization opportunities in marketplace"
+]
+
+[[skills]]
+id = "get_sales_stats"
+name = "Get Sales Stats"
+description = "Monitor sales metrics to drive pricing and messaging optimization decisions"
+tags = ["analytics", "sales", "optimization"]
+examples = [
+    "Check sales velocity to inform pricing decisions",
+    "Analyze performance data for optimization",
+    "Review metrics to adjust strategy"
+]
+
+[[skills]]
+id = "get_product_details"
+name = "Get Product Details"
+description = "Examine specific products to inform competitive positioning and optimization strategy"
+tags = ["product", "details", "analysis"]
+examples = [
+    "Analyze competitor product to optimize positioning",
+    "Compare product details for strategic insights",
+    "Examine successful products to learn from"
+]
+
+[[skills]]
+id = "get_available_images"
+name = "Get Available Images"
+description = "Select and test different product images to optimize visual appeal and conversion"
+tags = ["images", "product", "optimization"]
+examples = [
+    "Choose images for A/B testing",
+    "Select optimal product photography",
+    "Test different image combinations"
+]
 
