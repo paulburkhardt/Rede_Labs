@@ -2,9 +2,17 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 
 
+class ImageDescriptionSchema(BaseModel):
+    """Schema for returning image descriptions (without base64)"""
+    id: str
+    image_description: Optional[str] = None
+    product_number: Optional[str] = None
+
+
 class ImageSchema(BaseModel):
-    url: str
-    alternative_text: Optional[str] = None
+    """Legacy schema with base64 - only used internally"""
+    base64: str
+    image_description: Optional[str] = None
 
 
 class CompanySchema(BaseModel):
@@ -17,7 +25,7 @@ class ProductCreate(BaseModel):
     short_description: str
     long_description: str
     price: int
-    image: ImageSchema
+    image_ids: List[str]  # List of image IDs from the database
 
 
 class ProductUpdate(BaseModel):
@@ -25,7 +33,7 @@ class ProductUpdate(BaseModel):
     short_description: Optional[str] = None
     long_description: Optional[str] = None
     price: Optional[int] = None
-    image: Optional[ImageSchema] = None
+    image_ids: Optional[List[str]] = None  # List of image IDs from the database
     ranking: Optional[int] = None
 
 
@@ -37,7 +45,7 @@ class ProductSearchResult(BaseModel):
     currency: str
     bestseller: bool
     short_description: str
-    image: ImageSchema
+    images: List[ImageDescriptionSchema]  # List of image descriptions
     ranking: Optional[int] = None
 
     class Config:
@@ -53,7 +61,7 @@ class ProductDetail(BaseModel):
     bestseller: bool
     short_description: str
     long_description: str
-    image: ImageSchema
+    images: List[ImageDescriptionSchema]  # List of image descriptions
 
     class Config:
         from_attributes = True

@@ -16,6 +16,8 @@ from agentbeats.utils.agents import send_message_to_agent
 from agentbeats.logging import record_battle_event, record_battle_result
 import random
 import asyncio
+import toml
+from pathlib import Path
 
 
 
@@ -39,16 +41,19 @@ class Buyer(NamedTuple):
     token: str
 
 class ProductImage(NamedTuple):
-    url: str
-    alternative_text: str
+    base64: str
+    image_description: str
 
 sellers : list[Seller] = []
 buyers : list[Buyer] = []
 
+# Mock base64 image (1x1 transparent PNG)
+MOCK_BASE64_IMAGE = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
 product_images: list[ProductImage] = [
-    ProductImage(url="https://example.com/image1.jpg", alternative_text="Image 1"),
-    ProductImage(url="https://example.com/image2.jpg", alternative_text="Image 2"),
-    ProductImage(url="https://example.com/image3.jpg", alternative_text="Image 3"),
+    ProductImage(base64=MOCK_BASE64_IMAGE, image_description="Product image 1"),
+    ProductImage(base64=MOCK_BASE64_IMAGE, image_description="Product image 2"),
+    ProductImage(base64=MOCK_BASE64_IMAGE, image_description="Product image 3"),
 ]
 
 @ab.tool
@@ -112,13 +117,20 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     global battle_context, sellers, buyers
 
     if not battle_context:
-        record_battle_event(battle_context, "Battle orchestration started")
         return "Error: Battle context not initialized"
 
+    record_battle_event(battle_context, "Battle orchestration started")
+
     days: int = 5  # Total days in the battle
+    print("🌴 Battle orchestration started")
     try:
+        print("🌴 Creating sellers and buyer")
         await create_sellers(seller_infos)
+        print("🌴 Created sellers")
         await create_buyer()
+        print("🌴 Created buyer")
+        print(sellers)
+        print(buyers)
 
         # Day 1: Create listings
         await create_listings()
@@ -140,11 +152,57 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     
 
 async def create_sellers(seller_infos: list):
-    await create_participants(len(seller_infos), "/createSeller")
-
+    for seller_info in seller_infos:
+        # todo: add super admin auth token
+        print("🥥 Creating seller")
+        print(api_url + "/createSeller"),
+        response = requests.post(
+            api_url + "/createSeller",
+        )
+        print("🥥 Created seller")
+        if response.status_code != 200:
+            raise Exception(f"Failed to create seller: {response.text}")
+        
+        json = response.json()
+        id = json.get("id")
+        token = json.get("auth_token")
+        sellers.append(Seller(id=id, url=seller_info.get("agent_url"), token=token))
 
 async def create_buyer():
-    await create_participants(5, "/createBuyer")
+    """Create buyers based on configuration from tools/scenario.toml"""
+    # Load scenario configuration
+    scenario_path = Path(__file__).parent.parent.parent / "tools" / "scenario.toml"
+    
+    if not scenario_path.exists():
+        raise Exception(f"Scenario file not found at {scenario_path}")
+    
+    scenario_config = toml.load(scenario_path)
+    
+    # Filter agents where card filename starts with "buyer_"
+    buyer_agents = [
+        agent for agent in scenario_config.get("agents", [])
+        if Path(agent["card"]).name.startswith("buyer_")
+    ]
+    
+    # Create buyers based on the configuration
+    for buyer_agent in buyer_agents:
+        agent_host = buyer_agent.get("agent_host")
+        agent_port = buyer_agent.get("agent_port")
+        
+        if not agent_port:
+            raise Exception(f"No agent_port found for buyer agent: {buyer_agent.get('name')}")
+        
+        # Create buyer via API
+        response = requests.post(api_url + "/createBuyer")
+        
+        if response.status_code != 200:
+            raise Exception(f"Failed to create buyer: {response.text}")
+        
+        buyer_data = response.json()
+        # Store buyer with URL constructed from agent configuration
+        # todo: is that a problem that the buyer has to run local (because of the http://)?
+        url = f"http://{agent_host}:{agent_port}"
+        buyers.append(Buyer(id=buyer_data.get("id"), url=url, token=buyer_data.get("auth_token")))
 
 async def create_participants(no_participants: int, route: str):
     for i in range(no_participants):
@@ -168,29 +226,34 @@ async def create_listings():
     timeout_seconds = timeout_minutes * 60
     
     for seller in sellers:
-        prompt = """
+        prompt = f"""
 Call /createProduct to create a product.
 
+Your seller ID: {seller.id}
+Your auth token: {seller.token}
+
+Use the auth token in the Authorization header as "Bearer {seller.token}" when making API calls.
+
 Response format:
-{
+{{
     "product_id": "123", # id of the product you created
-}
+}}
         """
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(seller["url"], prompt),
+                send_message_to_agent(seller.url, prompt),
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
-            timeout_msg = f"Seller {seller['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            timeout_msg = f"Seller {seller.id} timed out after {timeout_minutes} minutes and lost their chance"
             print(timeout_msg)
             if battle_context:
                 record_battle_event(battle_context, timeout_msg)
         except Exception as e:
             # Log other errors but continue with other buyers
-            error_msg = f"Error communicating with seller {seller['id']}: {str(e)}"
+            error_msg = f"Error communicating with seller {seller.id}: {str(e)}"
             print(error_msg)
             if battle_context:
                 record_battle_event(battle_context, error_msg)
@@ -260,32 +323,37 @@ async def buyers_buy_products():
     timeout_seconds = timeout_minutes * 60
     
     for buyer in buyers:
-        prompt = """
-Call /search?q=keyword to find your product you want to buy. You can call /product/{id} to get more details about the product.
+        prompt = f"""
+Call /search?q=keyword to find your product you want to buy. You can call /product/{{id}} to get more details about the product.
+
+Your buyer ID: {buyer.id}
+Your auth token: {buyer.token}
+
+Use the auth token in the Authorization header as "Bearer {buyer.token}" when making API calls.
 
 Response even if you decided not to buy a product.
 
 Response format:
-{
+{{
     "product_id": "123", # id of the product you bought, null if you decided not to buy a product
     "decision": "buy" or "not buy"
-}
+}}
         """
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(buyer["url"], prompt),
+                send_message_to_agent(buyer.url, prompt),
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
-            timeout_msg = f"Buyer {buyer['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            timeout_msg = f"Buyer {buyer.id} timed out after {timeout_minutes} minutes and lost their chance"
             print(timeout_msg)
             if battle_context:
                 record_battle_event(battle_context, timeout_msg)
         except Exception as e:
             # Log other errors but continue with other buyers
-            error_msg = f"Error communicating with buyer {buyer['id']}: {str(e)}"
+            error_msg = f"Error communicating with buyer {buyer.id}: {str(e)}"
             print(error_msg)
             if battle_context:
                 record_battle_event(battle_context, error_msg)
@@ -296,29 +364,34 @@ async def sellers_update_listings():
     timeout_seconds = timeout_minutes * 60
     
     for seller in sellers:
-        prompt = """
+        prompt = f"""
 Call /updateProduct to update your product.
 
+Your seller ID: {seller.id}
+Your auth token: {seller.token}
+
+Use the auth token in the Authorization header as "Bearer {seller.token}" when making API calls.
+
 Response format:
-{
+{{
     "product_id": "123", # id of the product you updated
-}
+}}
         """
         try:
             # Send message with timeout
             await asyncio.wait_for(
-                send_message_to_agent(seller["url"], prompt),
+                send_message_to_agent(seller.url, prompt),
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             # Log timeout event
-            timeout_msg = f"Seller {seller['id']} timed out after {timeout_minutes} minutes and lost their chance"
+            timeout_msg = f"Seller {seller.id} timed out after {timeout_minutes} minutes and lost their chance"
             print(timeout_msg)
             if battle_context:
                 record_battle_event(battle_context, timeout_msg)
         except Exception as e:
             # Log other errors but continue with other sellers
-            error_msg = f"Error communicating with seller {seller['id']}: {str(e)}"
+            error_msg = f"Error communicating with seller {seller.id}: {str(e)}"
             print(error_msg)
             if battle_context:
                 record_battle_event(battle_context, error_msg)

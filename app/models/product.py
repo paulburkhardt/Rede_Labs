@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 import uuid
 
 from app.database import Base
+from app.models.product_image import product_images
 
 
 class Product(Base):
@@ -15,12 +16,11 @@ class Product(Base):
     price_in_cent = Column(Integer, nullable=False)
     currency = Column(String, default="USD")
     bestseller = Column(Boolean, default=False)
-    image_url = Column(String, nullable=True)
-    image_alternative_text = Column(String, nullable=True)
     ranking = Column(Integer, nullable=True)
 
-    # Foreign key to seller
+    # Foreign keys
     seller_id = Column(String, ForeignKey("sellers.id"), nullable=False)
 
-    # Relationship
+    # Relationships
     seller = relationship("Seller", back_populates="products")
+    images = relationship("Image", secondary=product_images, back_populates="products")

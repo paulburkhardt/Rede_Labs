@@ -8,10 +8,12 @@ from app.schemas.product import (
     ProductUpdate,
     ProductSearchResult,
     ProductDetail,
-    BatchRankingUpdate
+    BatchRankingUpdate,
+    ImageDescriptionSchema
 )
 from app.models.product import Product
 from app.models.seller import Seller
+from app.models.image import Image
 
 router = APIRouter(prefix="/product", tags=["products"])
 
@@ -41,6 +43,35 @@ def create_product(
     if existing_product:
         raise HTTPException(status_code=400, detail="Product with this ID already exists")
     
+    # Validate image IDs
+    if not product.image_ids or len(product.image_ids) == 0:
+        raise HTTPException(status_code=400, detail="At least one image_id is required")
+    
+    # Fetch all images (deduplicate IDs first)
+    unique_image_ids = list(set(product.image_ids))
+    images = db.query(Image).filter(Image.id.in_(unique_image_ids)).all()
+    
+    if len(images) != len(unique_image_ids):
+        found_ids = {img.id for img in images}
+        missing_ids = set(unique_image_ids) - found_ids
+        raise HTTPException(
+            status_code=404,
+            detail=f"Images not found: {', '.join(missing_ids)}"
+        )
+    
+    # Validate all images are from the same product_number
+    product_numbers = {img.product_number for img in images if img.product_number}
+    if len(product_numbers) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"All images must be from the same product_number. Found: {', '.join(product_numbers)}"
+        )
+    if len(product_numbers) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Images must have a product_number assigned"
+        )
+    
     # Create new product
     db_product = Product(
         id=id,
@@ -48,10 +79,12 @@ def create_product(
         short_description=product.short_description,
         long_description=product.long_description,
         price_in_cent=product.price,
-        image_url=product.image.url,
-        image_alternative_text=product.image.alternative_text,
         seller_id=seller.id
     )
+    
+    # Associate images with product
+    db_product.images = images
+    
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
@@ -97,9 +130,39 @@ def update_product(
         db_product.long_description = product.long_description
     if product.price is not None:
         db_product.price_in_cent = product.price
-    if product.image is not None:
-        db_product.image_url = product.image.url
-        db_product.image_alternative_text = product.image.alternative_text
+    if product.image_ids is not None:
+        # Validate image IDs
+        if len(product.image_ids) == 0:
+            raise HTTPException(status_code=400, detail="At least one image_id is required")
+        
+        # Fetch all images (deduplicate IDs first)
+        unique_image_ids = list(set(product.image_ids))
+        images = db.query(Image).filter(Image.id.in_(unique_image_ids)).all()
+        
+        if len(images) != len(unique_image_ids):
+            found_ids = {img.id for img in images}
+            missing_ids = set(unique_image_ids) - found_ids
+            raise HTTPException(
+                status_code=404,
+                detail=f"Images not found: {', '.join(missing_ids)}"
+            )
+        
+        # Validate all images are from the same product_number
+        product_numbers = {img.product_number for img in images if img.product_number}
+        if len(product_numbers) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"All images must be from the same product_number. Found: {', '.join(product_numbers)}"
+            )
+        if len(product_numbers) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Images must have a product_number assigned"
+            )
+        
+        # Update product images
+        db_product.images = images
+    
     if product.ranking is not None:
         db_product.ranking = product.ranking
     
@@ -122,7 +185,16 @@ def get_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Format response
+    # Format response with image descriptions (no base64)
+    images_data = [
+        ImageDescriptionSchema(
+            id=img.id,
+            image_description=img.image_description,
+            product_number=img.product_number
+        )
+        for img in db_product.images
+    ]
+    
     return ProductDetail(
         id=db_product.id,
         name=db_product.name,
@@ -132,10 +204,7 @@ def get_product(
         bestseller=db_product.bestseller,
         short_description=db_product.short_description,
         long_description=db_product.long_description,
-        image={
-            "url": db_product.image_url or "",
-            "alternative_text": db_product.image_alternative_text
-        }
+        images=images_data
     )
 
 # todo add security so only orchestration service can call this

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import sellers, products, search, purchases, buyers
+from app.routers import sellers, products, search, purchases, buyers, images
 from app.config import settings
 
 app = FastAPI(
@@ -25,6 +25,7 @@ app.include_router(buyers.router)
 app.include_router(products.router)
 app.include_router(search.router)
 app.include_router(purchases.router)
+app.include_router(images.router)
 
 
 @app.get("/")

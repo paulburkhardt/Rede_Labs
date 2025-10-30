@@ -1,6 +1,4 @@
-id = "quality_seeker"
 name = "Perfectionist Quality Seeker"
-csi_type = "Quality-Conscious Perfectionist"
 description = '''
 ROLE: You are a quality-focused shopper who researches purchases carefully.
 
@@ -28,4 +26,20 @@ DECISION CRITERIA:
 
 TASK: You will receive a list of bath towel products. Read the descriptions carefully and choose ONE product that represents the best quality. Explain your reasoning in 3-4 sentences, citing specific product details.
 '''
+url = "http://localhost:9999"
+host = "0.0.0.0"
+port = 9999
+version = "1.0.0"
 
+defaultInputModes = ["text"]
+defaultOutputModes = ["text"]
+
+[capabilities]
+streaming = true
+
+[[skills]]
+id = "choose_product"
+name = "Choose Product"
+description = "Choose the best product based on price and positioning."
+tags = ["buying", "evaluation"]
+examples = ["Choose the best product based on price and positioning."]

@@ -5,17 +5,14 @@ import pytest
 class TestProductCreation:
     """Test product creation endpoint"""
     
-    def test_create_product_success(self, client, sample_seller):
+    def test_create_product_success(self, client, sample_seller, sample_images):
         """Test successful product creation with authentication"""
         product_data = {
             "name": "Premium Towel",
             "short_description": "Soft and absorbent",
             "long_description": "Made from 100% organic cotton, perfect for daily use",
             "price": 2999,
-            "image": {
-                "url": "https://example.com/towel.jpg",
-                "alternative_text": "White towel on shelf"
-            }
+            "image_ids": [img.id for img in sample_images["01"]]
         }
         
         response = client.post(
@@ -29,17 +26,14 @@ class TestProductCreation:
         assert data["message"] == "Product created successfully"
         assert data["product_id"] == "prod-123"
     
-    def test_create_product_without_auth(self, client):
+    def test_create_product_without_auth(self, client, sample_images):
         """Test that product creation fails without authentication"""
         product_data = {
             "name": "Test Product",
             "short_description": "Test",
             "long_description": "Test description",
             "price": 1000,
-            "image": {
-                "url": "https://example.com/test.jpg",
-                "alternative_text": "Test"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         
         response = client.post(
@@ -49,17 +43,14 @@ class TestProductCreation:
         
         assert response.status_code == 422  # Missing required header
     
-    def test_create_product_with_invalid_token(self, client):
+    def test_create_product_with_invalid_token(self, client, sample_images):
         """Test that product creation fails with invalid token"""
         product_data = {
             "name": "Test Product",
             "short_description": "Test",
             "long_description": "Test description",
             "price": 1000,
-            "image": {
-                "url": "https://example.com/test.jpg",
-                "alternative_text": "Test"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         
         response = client.post(
@@ -71,17 +62,14 @@ class TestProductCreation:
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid authentication token"
     
-    def test_create_duplicate_product_id(self, client, sample_seller):
+    def test_create_duplicate_product_id(self, client, sample_seller, sample_images):
         """Test that creating a product with duplicate ID fails"""
         product_data = {
             "name": "Product One",
             "short_description": "First product",
             "long_description": "Description",
             "price": 1000,
-            "image": {
-                "url": "https://example.com/1.jpg",
-                "alternative_text": "Image 1"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         
         # Create first product
@@ -205,7 +193,8 @@ class TestProductRetrieval:
         assert data["currency"] == "USD"
         assert "seller_id" in data
         assert data["seller_id"] == sample_product["seller"]["id"]
-        assert "image" in data
+        assert "images" in data
+        assert isinstance(data["images"], list)
     
     def test_get_nonexistent_product(self, client):
         """Test retrieving a product that doesn't exist"""
@@ -251,7 +240,7 @@ class TestProductRanking:
         assert response.status_code == 404
         assert response.json()["detail"] == "Product not found"
     
-    def test_batch_update_product_rankings_success(self, client, sample_seller):
+    def test_batch_update_product_rankings_success(self, client, sample_seller, sample_images):
         """Test batch updating multiple product rankings"""
         # Create multiple products
         products = []
@@ -261,10 +250,7 @@ class TestProductRanking:
                 "short_description": f"Description {i}",
                 "long_description": f"Long description {i}",
                 "price": 1000 + i * 100,
-                "image": {
-                    "url": f"https://example.com/product{i}.jpg",
-                    "alternative_text": f"Product {i}"
-                }
+                "image_ids": [sample_images["01"][0].id]
             }
             create_response = client.post(
                 f"/product/batch-test-{i}",
@@ -355,7 +341,7 @@ class TestProductRanking:
         assert product is not None
         assert product["ranking"] == 10
     
-    def test_ranking_persists_in_search_results(self, client, sample_seller):
+    def test_ranking_persists_in_search_results(self, client, sample_seller, sample_images):
         """Test that rankings are returned in search results"""
         # Create product
         product_data = {
@@ -363,10 +349,7 @@ class TestProductRanking:
             "short_description": "Test ranking",
             "long_description": "Test ranking persistence",
             "price": 1500,
-            "image": {
-                "url": "https://example.com/ranked.jpg",
-                "alternative_text": "Ranked"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         
         create_response = client.post(
@@ -412,7 +395,7 @@ class TestProductRanking:
 class TestRankingWithPurchaseStats:
     """Test ranking updates based on purchase statistics"""
     
-    def test_update_rankings_based_on_purchase_stats(self, client):
+    def test_update_rankings_based_on_purchase_stats(self, client, sample_images):
         """Test complete workflow: create sellers, products, purchases, update rankings"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -427,7 +410,7 @@ class TestRankingWithPurchaseStats:
             "short_description": "Best seller",
             "long_description": "This will have more purchases",
             "price": 1000,
-            "image": {"url": "https://example.com/p1.jpg", "alternative_text": "P1"}
+            "image_ids": [sample_images["01"][0].id]
         }
         client.post(
             "/product/popular-1",
@@ -440,7 +423,7 @@ class TestRankingWithPurchaseStats:
             "short_description": "Fewer sales",
             "long_description": "This will have fewer purchases",
             "price": 1000,
-            "image": {"url": "https://example.com/p2.jpg", "alternative_text": "P2"}
+            "image_ids": [sample_images["02"][0].id]
         }
         client.post(
             "/product/unpopular-1",

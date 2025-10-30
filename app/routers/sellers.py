@@ -20,6 +20,7 @@ def create_seller(
     White agents use this endpoint to create their seller.
     Returns the seller with an auth_token for future API calls.
     """
+    print("Creating seller")    
     # Create new seller
     db_seller = Seller()
     db.add(db_seller)

@@ -47,3 +47,8 @@ htmlcov/
 # UV
 .uv/
 uv.lock
+
+
+# Temporary files
+tools/scenario.toml
+tools/temp_agents

@@ -5,17 +5,14 @@ import pytest
 class TestAuthenticationSecurity:
     """Test authentication and authorization security"""
     
-    def test_bearer_token_with_and_without_prefix(self, client, sample_seller):
+    def test_bearer_token_with_and_without_prefix(self, client, sample_seller, sample_images):
         """Test that both 'Bearer token' and 'token' formats work"""
         product_data = {
             "name": "Test Product",
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image": {
-                "url": "https://example.com/img.jpg",
-                "alternative_text": "Test"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         
         # Test with "Bearer " prefix
@@ -34,7 +31,7 @@ class TestAuthenticationSecurity:
         )
         assert response2.status_code == 200
     
-    def test_token_isolation_between_orgs(self, client):
+    def test_token_isolation_between_orgs(self, client, sample_images):
         """Test that sellers cannot access each other's resources"""
         # Create two sellers
         seller1 = client.post(
@@ -53,10 +50,7 @@ class TestAuthenticationSecurity:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1999,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -103,7 +97,7 @@ class TestAuthenticationSecurity:
 class TestMultipleSellersAndProducts:
     """Test scenarios with multiple sellers and products"""
     
-    def test_multiple_orgs_with_similar_products(self, client):
+    def test_multiple_orgs_with_similar_products(self, client, sample_images):
         """Test that multiple sellers can have products with similar names"""
         # Create two sellers
         org1 = client.post(
@@ -120,10 +114,7 @@ class TestMultipleSellersAndProducts:
             "short_description": "Great towel",
             "long_description": "Very nice towel",
             "price": 1999,
-            "image": {
-                "url": "https://example.com/towel.jpg",
-                "alternative_text": "Towel"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         
         client.post(
@@ -147,7 +138,7 @@ class TestMultipleSellersAndProducts:
         # Should have both seller IDs
         assert len(set(seller_ids)) == 2
     
-    def test_seller_can_manage_multiple_products(self, client, sample_seller):
+    def test_seller_can_manage_multiple_products(self, client, sample_seller, sample_images):
         """Test that one seller can create and manage multiple products"""
         products = []
         
@@ -160,10 +151,7 @@ class TestMultipleSellersAndProducts:
                     "short_description": f"Description {i}",
                     "long_description": f"Long description {i}",
                     "price": 1000 + (i * 100),
-                    "image": {
-                        "url": f"https://example.com/img{i}.jpg",
-                        "alternative_text": f"Image {i}"
-                    }
+                    "image_ids": [sample_images["01"][0].id]
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -248,7 +236,7 @@ class TestDataConsistency:
 class TestEdgeCases:
     """Test edge cases and boundary conditions"""
     
-    def test_product_with_zero_price(self, client, sample_seller):
+    def test_product_with_zero_price(self, client, sample_seller, sample_images):
         """Test creating a product with zero price"""
         response = client.post(
             "/product/free-product",
@@ -257,10 +245,7 @@ class TestEdgeCases:
                 "short_description": "Free",
                 "long_description": "Free product",
                 "price": 0,
-                "image": {
-                    "url": "https://example.com/free.jpg",
-                    "alternative_text": "Free"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -271,7 +256,7 @@ class TestEdgeCases:
         product = client.get("/product/free-product").json()
         assert product["price_in_cent"] == 0
     
-    def test_product_with_very_long_description(self, client, sample_seller):
+    def test_product_with_very_long_description(self, client, sample_seller, sample_images):
         """Test creating a product with very long descriptions"""
         long_text = "A" * 10000
         
@@ -282,17 +267,14 @@ class TestEdgeCases:
                 "short_description": long_text,
                 "long_description": long_text,
                 "price": 1999,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
         assert response.status_code == 200
     
-    def test_search_with_special_characters(self, client, sample_seller):
+    def test_search_with_special_characters(self, client, sample_seller, sample_images):
         """Test search with special characters"""
         # Create product with special characters
         client.post(
@@ -302,10 +284,7 @@ class TestEdgeCases:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1999,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -326,7 +305,7 @@ class TestEdgeCases:
 class TestSalesStats:
     """Test sales statistics endpoint"""
     
-    def test_get_sales_stats_no_sales(self, client, sample_seller):
+    def test_get_sales_stats_no_sales(self, client, sample_seller, sample_images):
         """Test getSalesStats with no sales returns empty data"""
         response = client.get(
             "/getSalesStats",
@@ -340,7 +319,7 @@ class TestSalesStats:
         assert data["total_revenue_in_cent"] == 0
         assert data["purchases"] == []
     
-    def test_get_sales_stats_with_single_purchase(self, client, sample_seller, sample_buyer):
+    def test_get_sales_stats_with_single_purchase(self, client, sample_seller, sample_buyer, sample_images):
         """Test getSalesStats with a single purchase"""
         # Create a product
         product_data = {
@@ -348,10 +327,7 @@ class TestSalesStats:
             "short_description": "Test",
             "long_description": "Test",
             "price": 2500,
-            "image": {
-                "url": "https://example.com/img.jpg",
-                "alternative_text": "Test"
-            }
+            "image_ids": [sample_images["01"][0].id]
         }
         client.post(
             "/product/test-prod-1",
@@ -388,7 +364,7 @@ class TestSalesStats:
         assert purchase["currency"] == "USD"
         assert "purchased_at" in purchase
     
-    def test_get_sales_stats_with_multiple_purchases(self, client, sample_seller):
+    def test_get_sales_stats_with_multiple_purchases(self, client, sample_seller, sample_images):
         """Test getSalesStats with multiple purchases from different buyers"""
         # Create two products
         for i in range(2):
@@ -399,10 +375,7 @@ class TestSalesStats:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": 1000 * (i + 1),
-                    "image": {
-                        "url": "https://example.com/img.jpg",
-                        "alternative_text": "Test"
-                    }
+                    "image_ids": [sample_images["01"][0].id]
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -444,7 +417,7 @@ class TestSalesStats:
         assert data["total_revenue_in_cent"] == (1000 * 3) + (2000 * 1)  # 5000
         assert len(data["purchases"]) == 4
     
-    def test_get_sales_stats_only_returns_own_sales(self, client):
+    def test_get_sales_stats_only_returns_own_sales(self, client, sample_images):
         """Test that getSalesStats only returns sales for the authenticated seller"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -458,10 +431,7 @@ class TestSalesStats:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -473,10 +443,7 @@ class TestSalesStats:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
         )
@@ -519,7 +486,7 @@ class TestSalesStats:
         assert data2["total_revenue_in_cent"] == 2000
         assert data2["purchases"][0]["product_id"] == "seller2-prod"
     
-    def test_get_sales_stats_requires_authentication(self, client):
+    def test_get_sales_stats_requires_authentication(self, client, sample_images):
         """Test that getSalesStats requires valid authentication"""
         # No authorization header
         response = client.get("/getSalesStats")
@@ -533,7 +500,7 @@ class TestSalesStats:
         assert response.status_code == 401
         assert "Invalid authentication token" in response.json()["detail"]
     
-    def test_get_sales_stats_with_bearer_prefix_variations(self, client, sample_seller, sample_buyer):
+    def test_get_sales_stats_with_bearer_prefix_variations(self, client, sample_seller, sample_buyer, sample_images):
         """Test that getSalesStats works with and without Bearer prefix"""
         # Create and purchase a product
         client.post(
@@ -543,10 +510,7 @@ class TestSalesStats:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1500,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -572,7 +536,7 @@ class TestSalesStats:
         assert response2.status_code == 200
         assert response2.json()["total_sales"] == 1
     
-    def test_get_sales_stats_purchase_order(self, client, sample_seller, sample_buyer):
+    def test_get_sales_stats_purchase_order(self, client, sample_seller, sample_buyer, sample_images):
         """Test that purchases are returned in the correct order"""
         # Create multiple products
         for i in range(3):
@@ -583,10 +547,7 @@ class TestSalesStats:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": 1000 * (i + 1),
-                    "image": {
-                        "url": "https://example.com/img.jpg",
-                        "alternative_text": "Test"
-                    }
+                    "image_ids": [sample_images["01"][0].id]
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -616,7 +577,7 @@ class TestSalesStats:
 class TestLeaderboard:
     """Test leaderboard endpoint"""
     
-    def test_leaderboard_no_sales(self, client):
+    def test_leaderboard_no_sales(self, client, sample_images):
         """Test leaderboard with no sales returns sellers with zero revenue"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -635,7 +596,7 @@ class TestLeaderboard:
             assert entry["total_revenue_cents"] == 0
             assert entry["total_revenue_dollars"] == 0.0
     
-    def test_leaderboard_single_seller_single_purchase(self, client, sample_seller, sample_buyer):
+    def test_leaderboard_single_seller_single_purchase(self, client, sample_seller, sample_buyer, sample_images):
         """Test leaderboard with a single seller and single purchase"""
         # Create a product
         client.post(
@@ -645,10 +606,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2500,
-                "image": {
-                    "url": "https://example.com/img.jpg",
-                    "alternative_text": "Test"
-                }
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -673,7 +631,7 @@ class TestLeaderboard:
         assert entry["total_revenue_cents"] == 2500
         assert entry["total_revenue_dollars"] == 25.0
     
-    def test_leaderboard_multiple_sellers_sorted_by_revenue(self, client):
+    def test_leaderboard_multiple_sellers_sorted_by_revenue(self, client, sample_images):
         """Test leaderboard with multiple sellers sorted by total revenue"""
         # Create three sellers
         sellers = []
@@ -695,7 +653,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
@@ -706,7 +664,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
@@ -721,7 +679,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 5000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sellers[1]['auth_token']}"}
         )
@@ -735,7 +693,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 500,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sellers[2]['auth_token']}"}
         )
@@ -764,7 +722,7 @@ class TestLeaderboard:
         assert data[2]["total_revenue_dollars"] == 5.0
         assert data[2]["purchase_count"] == 1
     
-    def test_leaderboard_same_product_multiple_purchases(self, client, sample_seller):
+    def test_leaderboard_same_product_multiple_purchases(self, client, sample_seller, sample_images):
         """Test leaderboard when the same product is purchased multiple times"""
         # Create a product
         client.post(
@@ -774,7 +732,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1500,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -804,7 +762,7 @@ class TestLeaderboard:
         assert entry["total_revenue_cents"] == 4500  # 1500 * 3
         assert entry["total_revenue_dollars"] == 45.0
     
-    def test_leaderboard_seller_with_no_purchases(self, client):
+    def test_leaderboard_seller_with_no_purchases(self, client, sample_images):
         """Test leaderboard includes sellers with products but no purchases"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -818,7 +776,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -829,7 +787,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
         )
@@ -869,7 +827,7 @@ class TestLeaderboard:
         seller2_index = data.index(seller2_data)
         assert seller1_index < seller2_index
     
-    def test_leaderboard_with_free_products(self, client, sample_seller, sample_buyer):
+    def test_leaderboard_with_free_products(self, client, sample_seller, sample_buyer, sample_images):
         """Test leaderboard with products that have zero price"""
         # Create a free product
         client.post(
@@ -879,7 +837,7 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 0,
-                "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                "image_ids": [sample_images["01"][0].id]
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -904,7 +862,7 @@ class TestLeaderboard:
         assert entry["total_revenue_cents"] == 0
         assert entry["total_revenue_dollars"] == 0.0
     
-    def test_leaderboard_mixed_prices(self, client):
+    def test_leaderboard_mixed_prices(self, client, sample_images):
         """Test leaderboard with various price points"""
         # Create seller
         seller = client.post("/createSeller").json()
@@ -920,7 +878,7 @@ class TestLeaderboard:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": price,
-                    "image": {"url": "https://example.com/img.jpg", "alternative_text": "Test"}
+                    "image_ids": [sample_images["01"][0].id]
                 },
                 headers={"Authorization": f"Bearer {seller['auth_token']}"}
             )
@@ -943,7 +901,7 @@ class TestLeaderboard:
         assert entry["total_revenue_dollars"] == expected_total / 100.0
         assert entry["purchase_count"] == 5
     
-    def test_leaderboard_response_structure(self, client, sample_seller):
+    def test_leaderboard_response_structure(self, client, sample_seller, sample_images):
         """Test that leaderboard response has correct structure"""
         response = client.get("/buy/stats/leaderboard")
         
@@ -968,7 +926,7 @@ class TestLeaderboard:
 class TestAPIHealth:
     """Test API health and basic endpoints"""
     
-    def test_root_endpoint(self, client):
+    def test_root_endpoint(self, client, sample_images):
         """Test root endpoint returns correct information"""
         response = client.get("/")
         
@@ -978,7 +936,7 @@ class TestAPIHealth:
         assert "version" in data
         assert "docs" in data
     
-    def test_health_endpoint(self, client):
+    def test_health_endpoint(self, client, sample_images):
         """Test health check endpoint"""
         response = client.get("/health")
         
