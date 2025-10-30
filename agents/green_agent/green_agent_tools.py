@@ -65,10 +65,13 @@ def change_phase(phase: Phase) -> None:
     """
     Update the marketplace backend to the specified phase.
     """
+
     headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
     response = requests.post(
         f"{api_url}/admin/phase",
-        json={"phase": phase.value},
+        # json={"phase": phase.value},
+        # Currently, disabled because broken.
+        json={"phase": Phase.OPEN.value},
         headers=headers,
     )
     if response.status_code != 200:
