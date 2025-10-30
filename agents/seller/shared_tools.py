@@ -43,6 +43,14 @@ def create_product(
     - "mid_tier": 550 GSM, 27x54 inches, Premium Cotton, $12.00 wholesale cost
     - "premium": 600 GSM, 27x59 inches, Premium Cotton, $15.00 wholesale cost
     
+    IMAGE CATEGORY VALIDATION (CRITICAL):
+    - Images MUST match the towel_variant category:
+      * Budget variant ("budget") → MUST use images from category "01"
+      * Mid-tier variant ("mid_tier") → MUST use images from category "02"
+      * Premium variant ("premium") → MUST use images from category "03"
+    - The API will reject your request if images don't match the variant category.
+    - Use get_images_by_product_number() to get images for the correct category.
+    
     When you specify a towel_variant, the system automatically sets the GSM, dimensions, and material.
     The product details endpoint will return these specifications (GSM, dimensions, material) but NOT the wholesale cost.
     
@@ -53,8 +61,8 @@ def create_product(
         short_description: Brief product description
         long_description: Detailed product description
         price: Price in cents (e.g., 2999 for $29.99)
-        image_ids: List of image IDs from the database (REQUIRED - at least one image, must be from same product_number)
-        towel_variant: REQUIRED towel variant ("budget", "mid_tier", or "premium"). Automatically sets GSM, dimensions, material, and wholesale cost.
+        image_ids: List of image IDs from the database (REQUIRED - at least one image, must match towel_variant: budget='01', mid_tier='02', premium='03')
+        towel_variant: REQUIRED towel variant ("budget", "mid_tier", or "premium"). Automatically sets GSM, dimensions, material, and wholesale cost. Images must match this category.
     
     Returns:
         dict: Response from the API containing product creation status
@@ -123,6 +131,14 @@ def update_product(
     - "mid_tier": 550 GSM, 27x54 inches, Premium Cotton, $12.00 wholesale cost
     - "premium": 600 GSM, 27x59 inches, Premium Cotton, $15.00 wholesale cost
     
+    IMAGE CATEGORY VALIDATION (CRITICAL):
+    - When updating images, they MUST match the product's towel_variant:
+      * Budget variant → images from category "01"
+      * Mid-tier variant → images from category "02"
+      * Premium variant → images from category "03"
+    - When changing towel_variant, existing images must match the new variant OR you must also update images.
+    - The API will reject mismatched combinations.
+    
     Args:
         auth_token: Seller's authentication token
         product_id: ID of the product to update
@@ -130,8 +146,8 @@ def update_product(
         short_description: New brief description (optional)
         long_description: New detailed description (optional)
         price: New price in cents (optional)
-        image_ids: New list of image IDs (if provided, must include at least one image from same product_number, optional)
-        towel_variant: Optional towel variant ("budget", "mid_tier", or "premium"). When specified, automatically updates GSM, dimensions, material, and wholesale cost.
+        image_ids: New list of image IDs (if provided, must include at least one image matching the towel_variant category, optional)
+        towel_variant: Optional towel variant ("budget", "mid_tier", or "premium"). When specified, automatically updates GSM, dimensions, material, and wholesale cost. If changing variant, images must match new category.
     
     Returns:
         dict: Response from the API containing update status
@@ -249,7 +265,13 @@ def get_available_images():
     Get all available images grouped by product_number.
     Returns image descriptions (not base64) organized by category.
     
-    IMPORTANT: You must select at least one image when creating a product. Products cannot be created without images.
+    IMPORTANT: 
+    - You must select at least one image when creating a product. Products cannot be created without images.
+    - Images are organized by category code:
+      * "01" = Budget category (use with towel_variant="budget")
+      * "02" = Mid-tier category (use with towel_variant="mid_tier")
+      * "03" = Premium category (use with towel_variant="premium")
+    - Always match image category to your towel_variant or the API will reject your request.
     
     Returns:
         dict: Images grouped by product_number
@@ -284,7 +306,9 @@ def get_images_by_product_number(product_number: str):
     """
     Get all images for a specific product_number category.
     
-    Use this to select images for your product. Remember: products MUST have at least one image.
+    Use this to select images for your product. Remember: 
+    - Products MUST have at least one image.
+    - Image category MUST match towel_variant: "01"=budget, "02"=mid_tier, "03"=premium.
     
     Args:
         product_number: The product number category (e.g., "01", "02")

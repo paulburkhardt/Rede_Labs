@@ -518,7 +518,8 @@ class TestRankingWithPurchaseStats:
             "short_description": "Best seller",
             "long_description": "This will have more purchases",
             "price": 1000,
-            "image_ids": [sample_images["01"][0].id]
+            "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"  # Category 01 = budget
         }
         client.post(
             "/product/popular-1",
@@ -531,7 +532,8 @@ class TestRankingWithPurchaseStats:
             "short_description": "Fewer sales",
             "long_description": "This will have fewer purchases",
             "price": 1000,
-            "image_ids": [sample_images["02"][0].id]
+            "image_ids": [sample_images["02"][0].id],
+            "towel_variant": "mid_tier"  # Category 02 = mid_tier
         }
         client.post(
             "/product/unpopular-1",
