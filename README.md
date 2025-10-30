@@ -334,3 +334,37 @@ The enhanced prompt generates comprehensive descriptions covering:
 - **Server**: Uvicorn
 - **Testing**: pytest + httpx TestClient
 - **AI**: OpenAI GPT-4o-mini (Vision API)
+
+## Tmux Setup
+
+### Enable logs
+
+Add this to your `~/.tmux.conf`:
+
+```conf
+# Ensure the log directory exists
+run-shell "mkdir -p ~/tmux-logs"
+
+# Start logging for panes created by splitting
+set-hook -g after-split-window  'run-shell "tmux pipe-pane -o -t #{pane_id} \"cat >> ~/tmux-logs/#{session_name}_#{window_index}_#{pane_index}.log\" "'
+
+# Start logging for the initial pane of new windows
+set-hook -g after-new-window    'run-shell "tmux pipe-pane -o -t #{pane_id} \"cat >> ~/tmux-logs/#{session_name}_#{window_index}_#{pane_index}.log\" "'
+
+# Also cover panes that already exist when a client attaches (first session, restarts, etc.)
+set-hook -g client-attached 'run-shell "for p in $(tmux list-panes -a -F \"#{pane_id}\"); do tmux pipe-pane -o -t \"$p\" \"cat >> ~/tmux-logs/#{session_name}_#{window_index}_#{pane_index}.log\"; done"'
+```
+
+Run `tmux source-file ~/.tmux.conf` to apply the changes.
+
+The logs are stored in `~/tmux-logs`.
+
+### Enable scrolling
+
+Add this to your `~/.tmux.conf`:
+
+```conf
+set -g mouse on
+```
+
+Run `tmux source-file ~/.tmux.conf` to apply the changes.
