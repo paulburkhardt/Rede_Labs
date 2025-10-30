@@ -142,15 +142,15 @@ class TestProductSearch:
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
-        # Set explicit rankings: amazing-towel higher than regular-prod
+        # Set explicit rankings: amazing-towel rank 1 (best), regular-prod rank 10 (worse)
         client.patch(
             "/product/amazing-towel",
-            json={"ranking": 10},
+            json={"ranking": 1},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         client.patch(
             "/product/regular-prod",
-            json={"ranking": 1},
+            json={"ranking": 10},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
@@ -159,7 +159,7 @@ class TestProductSearch:
         
         # Should have both products
         assert len(results) == 2
-        # Verify ranking ordering (higher ranking first)
+        # Verify ranking ordering (rank 1 = best comes first)
         assert results[0]["name"] == "Amazing Towel"
         assert results[1]["name"] == "Regular Towel"
     
