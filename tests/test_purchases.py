@@ -1,12 +1,17 @@
 """Integration tests for purchase endpoint"""
 import pytest
 
+from app.services.phase_manager import Phase
+
 
 class TestPurchaseCreation:
     """Test purchase creation endpoint"""
     
-    def test_purchase_product_success(self, client, sample_product, sample_buyer):
+    def test_purchase_product_success(
+        self, client, sample_product, sample_buyer, set_phase
+    ):
         """Test successful product purchase"""
+        set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
             json={"purchased_at": 0},
@@ -22,8 +27,9 @@ class TestPurchaseCreation:
         assert data["product_id"] == sample_product['id']
         assert len(data["id"]) > 0
     
-    def test_purchase_without_auth(self, client, sample_product):
+    def test_purchase_without_auth(self, client, sample_product, set_phase):
         """Test that purchase fails without authentication"""
+        set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
             json={"purchased_at": 0}
@@ -31,8 +37,9 @@ class TestPurchaseCreation:
         
         assert response.status_code == 422  # Missing required header
     
-    def test_purchase_with_invalid_token(self, client, sample_product):
+    def test_purchase_with_invalid_token(self, client, sample_product, set_phase):
         """Test that purchase fails with invalid buyer token"""
+        set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
             json={"purchased_at": 0},
@@ -42,8 +49,11 @@ class TestPurchaseCreation:
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid authentication token"
     
-    def test_purchase_nonexistent_product(self, client, sample_buyer):
+    def test_purchase_nonexistent_product(
+        self, client, sample_buyer, set_phase
+    ):
         """Test that purchasing nonexistent product fails"""
+        set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             "/buy/nonexistent-product-id",
             json={"purchased_at": 0},
@@ -53,8 +63,11 @@ class TestPurchaseCreation:
         assert response.status_code == 404
         assert response.json()["detail"] == "Product not found"
     
-    def test_multiple_purchases_by_same_buyer(self, client, sample_product, sample_buyer):
+    def test_multiple_purchases_by_same_buyer(
+        self, client, sample_product, sample_buyer, set_phase
+    ):
         """Test that a buyer can make multiple purchases"""
+        set_phase(Phase.BUYER_SHOPPING)
         # First purchase
         response1 = client.post(
             f"/buy/{sample_product['id']}",
@@ -77,7 +90,9 @@ class TestPurchaseCreation:
         assert purchase1["id"] != purchase2["id"]
         assert purchase1["product_id"] == purchase2["product_id"]
     
-    def test_multiple_buyers_purchase_same_product(self, client, sample_product):
+    def test_multiple_buyers_purchase_same_product(
+        self, client, sample_product, set_phase
+    ):
         """Test that multiple buyers can purchase the same product"""
         # Create two buyers
         buyer1 = client.post(
@@ -89,6 +104,7 @@ class TestPurchaseCreation:
         ).json()
         
         # Both purchase the same product
+        set_phase(Phase.BUYER_SHOPPING)
         response1 = client.post(
             f"/buy/{sample_product['id']}",
             json={"purchased_at": 0},
@@ -107,8 +123,11 @@ class TestPurchaseCreation:
         # Verify different purchase IDs
         assert response1.json()["id"] != response2.json()["id"]
     
-    def test_seller_token_cannot_make_purchase(self, client, sample_product, sample_seller):
+    def test_seller_token_cannot_make_purchase(
+        self, client, sample_product, sample_seller, set_phase
+    ):
         """Test that seller token cannot be used to make purchases"""
+        set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
             f"/buy/{sample_product['id']}",
             json={"purchased_at": 0},
@@ -119,11 +138,25 @@ class TestPurchaseCreation:
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid authentication token"
 
+    def test_purchase_blocked_outside_buyer_phase(
+        self, client, sample_product, sample_buyer, set_phase
+    ):
+        """Ensure purchases are rejected when marketplace is not in buyer phase"""
+        set_phase(Phase.SELLER_MANAGEMENT)
+        response = client.post(
+            f"/buy/{sample_product['id']}",
+            json={"purchased_at": 0},
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+
+        assert response.status_code == 403
+        assert "phase" in response.json()["detail"]
+
 
 class TestPurchaseWorkflow:
     """Test complete purchase workflows"""
     
-    def test_complete_marketplace_workflow(self, client, sample_images):
+    def test_complete_marketplace_workflow(self, client, sample_images, set_phase):
         """Test a complete workflow: create org, product, buyer, and purchase"""
         # Step 1: Create seller
         org = client.post(
@@ -167,6 +200,7 @@ class TestPurchaseWorkflow:
         assert "auth_token" in buyer
         
         # Step 6: Make purchase
+        set_phase(Phase.BUYER_SHOPPING)
         purchase_response = client.post(
             "/buy/premium-towel",
             json={"purchased_at": 0},

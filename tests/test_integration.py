@@ -1,6 +1,8 @@
 """Integration tests for complex scenarios and edge cases"""
 import pytest
 
+from app.services.phase_manager import Phase
+
 
 class TestAuthenticationSecurity:
     """Test authentication and authorization security"""
@@ -66,7 +68,7 @@ class TestAuthenticationSecurity:
         
         assert response.status_code == 403
     
-    def test_token_isolation_between_buyers(self, client, sample_product):
+    def test_token_isolation_between_buyers(self, client, sample_product, set_phase):
         """Test that buyer tokens are properly isolated"""
         buyer1 = client.post(
             "/createBuyer",
@@ -77,6 +79,7 @@ class TestAuthenticationSecurity:
         ).json()
         
         # Both should be able to purchase
+        set_phase(Phase.BUYER_SHOPPING)
         response1 = client.post(
             f"/buy/{sample_product['id']}",
             json={"purchased_at": 0},
@@ -318,7 +321,9 @@ class TestSalesStats:
         assert data["total_revenue_in_cent"] == 0
         assert data["purchases"] == []
     
-    def test_get_sales_stats_with_single_purchase(self, client, sample_seller, sample_buyer, sample_images):
+    def test_get_sales_stats_with_single_purchase(
+        self, client, sample_seller, sample_buyer, sample_images, set_phase
+    ):
         """Test getSalesStats with a single purchase"""
         # Create a product
         product_data = {
@@ -336,6 +341,7 @@ class TestSalesStats:
         )
         
         # Make a purchase
+        set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/test-prod-1",
             json={"purchased_at": 0},
@@ -363,7 +369,9 @@ class TestSalesStats:
         assert purchase["currency"] == "USD"
         assert "purchased_at" in purchase
     
-    def test_get_sales_stats_with_multiple_purchases(self, client, sample_seller, sample_images):
+    def test_get_sales_stats_with_multiple_purchases(
+        self, client, sample_seller, sample_images, set_phase
+    ):
         """Test getSalesStats with multiple purchases from different buyers"""
         # Create two products
         for i in range(2):
@@ -381,6 +389,7 @@ class TestSalesStats:
             )
         
         # Create three buyers and make purchases
+        set_phase(Phase.BUYER_SHOPPING)
         for i in range(3):
             buyer = client.post(
                 "/createBuyer",
@@ -415,7 +424,9 @@ class TestSalesStats:
         assert data["total_revenue_in_cent"] == (1000 * 3) + (2000 * 1)  # 5000
         assert len(data["purchases"]) == 4
     
-    def test_get_sales_stats_only_returns_own_sales(self, client, sample_images):
+    def test_get_sales_stats_only_returns_own_sales(
+        self, client, sample_images, set_phase
+    ):
         """Test that getSalesStats only returns sales for the authenticated seller"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -454,6 +465,7 @@ class TestSalesStats:
         ).json()
         
         # Buyer purchases from both sellers
+        set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/seller1-prod",
             json={"purchased_at": 0},
@@ -499,7 +511,9 @@ class TestSalesStats:
         assert response.status_code == 401
         assert "Invalid authentication token" in response.json()["detail"]
     
-    def test_get_sales_stats_with_bearer_prefix_variations(self, client, sample_seller, sample_buyer, sample_images):
+    def test_get_sales_stats_with_bearer_prefix_variations(
+        self, client, sample_seller, sample_buyer, sample_images, set_phase
+    ):
         """Test that getSalesStats works with and without Bearer prefix"""
         # Create and purchase a product
         client.post(
@@ -514,6 +528,7 @@ class TestSalesStats:
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
+        set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/test-prod",
             json={"purchased_at": 0},
@@ -536,9 +551,12 @@ class TestSalesStats:
         assert response2.status_code == 200
         assert response2.json()["total_sales"] == 1
     
-    def test_get_sales_stats_purchase_order(self, client, sample_seller, sample_buyer, sample_images):
+    def test_get_sales_stats_purchase_order(
+        self, client, sample_seller, sample_buyer, sample_images, set_phase
+    ):
         """Test that purchases are returned in the correct order"""
         # Create multiple products
+        product_ids = []
         for i in range(3):
             client.post(
                 f"/product/prod-{i}",
@@ -552,10 +570,12 @@ class TestSalesStats:
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
-            
-            # Purchase each product
+            product_ids.append(f"prod-{i}")
+
+        set_phase(Phase.BUYER_SHOPPING)
+        for i, product_id in enumerate(product_ids):
             client.post(
-                f"/buy/prod-{i}",
+                f"/buy/{product_id}",
                 json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
@@ -597,7 +617,9 @@ class TestLeaderboard:
             assert entry["total_profit_cents"] == 0
             assert entry["total_profit_dollars"] == 0.0
     
-    def test_leaderboard_single_seller_single_purchase(self, client, sample_seller, sample_buyer, sample_images):
+    def test_leaderboard_single_seller_single_purchase(
+        self, client, sample_seller, sample_buyer, sample_images, set_phase
+    ):
         """Test leaderboard with a single seller and single purchase"""
         # Create a product
         client.post(
@@ -614,6 +636,7 @@ class TestLeaderboard:
         )
         
         # Make a purchase
+        set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/test-prod",
             json={"purchased_at": 0},
@@ -634,7 +657,9 @@ class TestLeaderboard:
         assert entry["total_profit_cents"] == 1700
         assert entry["total_profit_dollars"] == 17.0
     
-    def test_leaderboard_multiple_sellers_sorted_by_revenue(self, client, sample_images):
+    def test_leaderboard_multiple_sellers_sorted_by_revenue(
+        self, client, sample_images, set_phase
+    ):
         """Test leaderboard with multiple sellers sorted by total revenue"""
         # Create three sellers
         sellers = []
@@ -672,8 +697,6 @@ class TestLeaderboard:
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
-        client.post("/buy/s0-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
-        client.post("/buy/s0-p2", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
         
         # Seller 1: 1 product at $50 = $50 total (highest)
         client.post(
@@ -688,7 +711,6 @@ class TestLeaderboard:
             },
             headers={"Authorization": f"Bearer {sellers[1]['auth_token']}"}
         )
-        client.post("/buy/s1-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
         
         # Seller 2: 1 product at $5 = $5 total (lowest)
         client.post(
@@ -703,6 +725,11 @@ class TestLeaderboard:
             },
             headers={"Authorization": f"Bearer {sellers[2]['auth_token']}"}
         )
+        
+        set_phase(Phase.BUYER_SHOPPING)
+        client.post("/buy/s0-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+        client.post("/buy/s0-p2", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
+        client.post("/buy/s1-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
         client.post("/buy/s2-p1", json={"purchased_at": 0}, headers={"Authorization": f"Bearer {buyer['auth_token']}"})
         
         # Get leaderboard
@@ -731,7 +758,9 @@ class TestLeaderboard:
         assert data[2]["total_profit_dollars"] == -3.0
         assert data[2]["purchase_count"] == 1
     
-    def test_leaderboard_same_product_multiple_purchases(self, client, sample_seller, sample_images):
+    def test_leaderboard_same_product_multiple_purchases(
+        self, client, sample_seller, sample_images, set_phase
+    ):
         """Test leaderboard when the same product is purchased multiple times"""
         # Create a product
         client.post(
@@ -748,6 +777,7 @@ class TestLeaderboard:
         )
         
         # Create three buyers and each purchases the same product
+        set_phase(Phase.BUYER_SHOPPING)
         for i in range(3):
             buyer = client.post(
                 "/createBuyer",
@@ -772,7 +802,9 @@ class TestLeaderboard:
         assert entry["total_profit_cents"] == 2100
         assert entry["total_profit_dollars"] == 21.0
     
-    def test_leaderboard_seller_with_no_purchases(self, client, sample_images):
+    def test_leaderboard_seller_with_no_purchases(
+        self, client, sample_images, set_phase
+    ):
         """Test leaderboard includes sellers with products but no purchases"""
         # Create two sellers
         seller1 = client.post("/createSeller").json()
@@ -808,6 +840,7 @@ class TestLeaderboard:
         buyer = client.post(
             "/createBuyer",
         ).json()
+        set_phase(Phase.BUYER_SHOPPING)
         client.post(
             "/buy/s1-prod",
             json={"purchased_at": 0},
@@ -839,8 +872,45 @@ class TestLeaderboard:
         seller2_index = data.index(seller2_data)
         assert seller1_index < seller2_index
     
+    def test_leaderboard_with_free_products(
+        self, client, sample_seller, sample_buyer, sample_images, set_phase
+    ):
+        """Test leaderboard with products that have zero price"""
+        # Create a free product
+        client.post(
+            "/product/free-prod",
+            json={
+                "name": "Free Product",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 0,
+                "image_ids": [sample_images["01"][0].id]
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
+        )
+        
+        # Purchase the free product
+        set_phase(Phase.BUYER_SHOPPING)
+        client.post(
+            "/buy/free-prod",
+            json={"purchased_at": 0},
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+        
+        # Get leaderboard
+        response = client.get("/buy/stats/leaderboard")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        entry = data[0]
+        assert entry["seller_id"] == sample_seller["id"]
+        assert entry["purchase_count"] == 1
+        assert entry["total_revenue_cents"] == 0
+        assert entry["total_revenue_dollars"] == 0.0
     
-    def test_leaderboard_mixed_prices(self, client, sample_images):
+    def test_leaderboard_mixed_prices(self, client, sample_images, set_phase):
         """Test leaderboard with various price points"""
         # Create seller
         seller = client.post("/createSeller").json()
@@ -848,6 +918,7 @@ class TestLeaderboard:
         
         # Create products with different prices (excluding 0 since it's not allowed)
         prices = [1, 99, 1000, 9999, 100000]  # $0.01, $0.99, $10, $99.99, $1000
+        product_ids: list[str] = []
         for i, price in enumerate(prices):
             client.post(
                 f"/product/prod-{i}",
@@ -861,8 +932,12 @@ class TestLeaderboard:
                 },
                 headers={"Authorization": f"Bearer {seller['auth_token']}"}
             )
+            product_ids.append(f"prod-{i}")
+
+        set_phase(Phase.BUYER_SHOPPING)
+        for i, product_id in enumerate(product_ids):
             client.post(
-                f"/buy/prod-{i}",
+                f"/buy/{product_id}",
                 json={"purchased_at": i},
                 headers={"Authorization": f"Bearer {buyer['auth_token']}"}
             )
@@ -903,6 +978,70 @@ class TestLeaderboard:
             assert isinstance(entry["purchase_count"], int)
             assert isinstance(entry["total_profit_cents"], int)
             assert isinstance(entry["total_profit_dollars"], float)
+
+
+class TestPhaseAdministration:
+    """Test administrative phase management endpoints"""
+
+    def test_get_phase_returns_current_phase(self, client):
+        """Default phase should be seller management"""
+        response = client.get("/admin/phase")
+        assert response.status_code == 200
+        assert response.json()["phase"] == Phase.SELLER_MANAGEMENT.value
+
+    def test_update_phase_changes_current_phase(self, client):
+        """Phase update should persist and be retrievable"""
+        update_response = client.post(
+            "/admin/phase", json={"phase": Phase.BUYER_SHOPPING.value}
+        )
+        assert update_response.status_code == 200
+        assert update_response.json()["phase"] == Phase.BUYER_SHOPPING.value
+
+        fetch_response = client.get("/admin/phase")
+        assert fetch_response.status_code == 200
+        assert fetch_response.json()["phase"] == Phase.BUYER_SHOPPING.value
+
+    def test_update_phase_requires_valid_admin_key(self, client):
+        """Invalid admin key should be rejected"""
+        response = client.post(
+            "/admin/phase",
+            json={"phase": Phase.BUYER_SHOPPING.value},
+            headers={"X-Admin-Key": "wrong-key"},
+        )
+        assert response.status_code == 401
+        assert "Invalid or missing admin key" in response.json()["detail"]
+
+
+class TestPhaseAdministration:
+    """Test administrative phase management endpoints"""
+
+    def test_get_phase_returns_current_phase(self, client):
+        """Default phase should be seller management"""
+        response = client.get("/admin/phase")
+        assert response.status_code == 200
+        assert response.json()["phase"] == Phase.SELLER_MANAGEMENT.value
+
+    def test_update_phase_changes_current_phase(self, client):
+        """Phase update should persist and be retrievable"""
+        update_response = client.post(
+            "/admin/phase", json={"phase": Phase.BUYER_SHOPPING.value}
+        )
+        assert update_response.status_code == 200
+        assert update_response.json()["phase"] == Phase.BUYER_SHOPPING.value
+
+        fetch_response = client.get("/admin/phase")
+        assert fetch_response.status_code == 200
+        assert fetch_response.json()["phase"] == Phase.BUYER_SHOPPING.value
+
+    def test_update_phase_requires_valid_admin_key(self, client):
+        """Invalid admin key should be rejected"""
+        response = client.post(
+            "/admin/phase",
+            json={"phase": Phase.BUYER_SHOPPING.value},
+            headers={"X-Admin-Key": "wrong-key"},
+        )
+        assert response.status_code == 401
+        assert "Invalid or missing admin key" in response.json()["detail"]
 
 
 class TestAPIHealth:
