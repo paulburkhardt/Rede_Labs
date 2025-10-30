@@ -410,59 +410,30 @@ Response format:
 
 
 async def create_ranking():
-    # Get all products and assign random rankings
-    response = requests.get(f"{api_url}/search?q=")
+    # Initialize rankings with random values via API
+    response = requests.post(f"{api_url}/rankings/initialize")
     if response.status_code != 200:
-        raise Exception(f"Failed to get products: {response.text}")
-
-    products = response.json()
-    random_ranking = list(range(1, len(products) + 1))
-    random.shuffle(random_ranking)
-
-    # Prepare batch update payload
-    rankings = [
-        {"product_id": product["id"], "ranking": random_ranking[i]}
-        for i, product in enumerate(products)
-    ]
-
-    # Update all rankings in one call
-    update_response = requests.patch(
-        f"{api_url}/product/batch/rankings", json={"rankings": rankings}
-    )
-    if update_response.status_code != 200:
-        raise Exception(f"Failed to set initial rankings: {update_response.text}")
+        raise Exception(f"Failed to initialize rankings: {response.text}")
+    
+    result = response.json()
+    print(f"✅ {result['message']}")
 
 
 async def update_ranking():
-    # Query sales data and update product rankings
-    response = requests.get(
-        api_url + "/buy/stats/by-seller",
-    )
+    # Update rankings based on sales performance via API
+    response = requests.post(f"{api_url}/rankings/update-by-sales")
     if response.status_code != 200:
-        raise Exception(f"Failed to get sales stats: {response.text}")
-    sales_stats = response.json()
-
-    # Sort by number of purchases
-    sorted_stats = sorted(sales_stats, key=lambda x: x["purchase_count"], reverse=True)
-
-    # Prepare batch update payload
-    rankings = []
-    for rank, stat in enumerate(sorted_stats, start=1):
-        seller_id = stat["seller_id"]
-        # Get all products for this seller
-        response = requests.get(f"{api_url}/search?seller_id={seller_id}")
-        if response.status_code == 200:
-            products = response.json()
-            for product in products:
-                rankings.append({"product_id": product["id"], "ranking": rank})
-
-    # Update all rankings in one call
-    if rankings:
-        update_response = requests.patch(
-            f"{api_url}/product/batch/rankings", json={"rankings": rankings}
-        )
-        if update_response.status_code != 200:
-            print(f"Warning: Failed to update rankings: {update_response.text}")
+        print(f"Warning: Failed to update rankings: {response.text}")
+        return
+    
+    result = response.json()
+    print(f"✅ {result['message']}")
+    
+    # Log top products for visibility
+    if "top_products" in result:
+        print("📊 Top 5 products by sales:")
+        for product in result["top_products"]:
+            print(f"   Rank {product['ranking']}: {product['product_name']} ({product['sales_count']} sales)")
 
 
 async def buyers_buy_products():

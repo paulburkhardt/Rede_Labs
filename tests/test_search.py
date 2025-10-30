@@ -30,7 +30,8 @@ class TestProductSearch:
                     "short_description": short_desc,
                     "long_description": long_desc,
                     "price": prod["price"],
-                    "image_ids": [sample_images["01"][0].id]
+                    "image_ids": [sample_images["01"][0].id],
+                    "towel_variant": "budget"
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -55,7 +56,8 @@ class TestProductSearch:
                 "short_description": "this is a premium towel",
                 "long_description": "The Premium towel is extra soft",
                 "price": 1999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -76,7 +78,8 @@ class TestProductSearch:
                 "short_description": "An ordinary but extraordinary item",
                 "long_description": "Truly extraordinary quality for ordinary needs",
                 "price": 1999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -120,7 +123,8 @@ class TestProductSearch:
                 "short_description": "Regular towel",
                 "long_description": "Regular towel item",
                 "price": 1999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -132,20 +136,21 @@ class TestProductSearch:
                 "short_description": "Amazing towel",
                 "long_description": "Amazing towel item",
                 "price": 2999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
-        # Set explicit rankings: amazing-towel higher than regular-prod
+        # Set explicit rankings: amazing-towel rank 1 (best), regular-prod rank 10 (worse)
         client.patch(
             "/product/amazing-towel",
-            json={"ranking": 10},
+            json={"ranking": 1},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         client.patch(
             "/product/regular-prod",
-            json={"ranking": 1},
+            json={"ranking": 10},
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
@@ -154,7 +159,7 @@ class TestProductSearch:
         
         # Should have both products
         assert len(results) == 2
-        # Verify ranking ordering (higher ranking first)
+        # Verify ranking ordering (rank 1 = best comes first)
         assert results[0]["name"] == "Amazing Towel"
         assert results[1]["name"] == "Regular Towel"
     
@@ -197,6 +202,7 @@ class TestProductSearch:
                 "long_description": "Plain long description",
                 "price": 1500,
                 "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
         )
@@ -216,6 +222,7 @@ class TestProductSearch:
                 "long_description": "Plain long description",
                 "price": 1600,
                 "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
         )
@@ -235,6 +242,7 @@ class TestProductSearch:
                 "long_description": "This paragraph contains UniqueLongKeyword only here.",
                 "price": 1700,
                 "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
         )

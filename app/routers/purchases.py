@@ -44,7 +44,9 @@ def create_purchase(
     db_purchase = Purchase(
         product_id=product_id,
         buyer_id=buyer.id,
-        purchased_at=purchase.purchased_at
+        purchased_at=purchase.purchased_at,
+        price_of_purchase=product.price_in_cent,
+        wholesale_cost_at_purchase=product.wholesale_cost_cents
     )
     db.add(db_purchase)
     db.commit()
@@ -52,7 +54,9 @@ def create_purchase(
     
     return PurchaseResponse(
         id=db_purchase.id,
-        product_id=db_purchase.product_id
+        product_id=db_purchase.product_id,
+        price_of_purchase=db_purchase.price_of_purchase,
+        wholesale_cost_at_purchase=db_purchase.wholesale_cost_at_purchase
     )
 
 
@@ -88,39 +92,29 @@ def get_purchases_per_seller(db: Session = Depends(get_db)):
 @router.get("/stats/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
     """
-    Get the leaderboard with total revenue and purchase count per seller.
-    Returns a list of sellers sorted by total revenue (descending).
+    Get the leaderboard with total profit and purchase count per seller.
+    Returns a list of sellers sorted by total profit (descending).
+    Profit = price_of_purchase - wholesale_cost_at_purchase
     """
     from app.models.seller import Seller
-    from sqlalchemy import case
     
-    # Query to calculate total revenue and purchase count per seller
-    # Only sum prices where there's an actual purchase (Purchase.id is not null)
+    # Query to calculate total profit and purchase count per seller
+    # Profit = Sum(price_of_purchase - wholesale_cost_at_purchase)
     results = (
         db.query(
             Seller.id,
             func.count(Purchase.id).label("purchase_count"),
             func.coalesce(
-                func.sum(
-                    case(
-                        (Purchase.id.isnot(None), Product.price_in_cent),
-                        else_=0
-                    )
-                ),
+                func.sum(Purchase.price_of_purchase - Purchase.wholesale_cost_at_purchase),
                 0
-            ).label("total_revenue_cents")
+            ).label("total_profit_cents")
         )
         .outerjoin(Product, Product.seller_id == Seller.id)
         .outerjoin(Purchase, Purchase.product_id == Product.id)
         .group_by(Seller.id)
         .order_by(
             func.coalesce(
-                func.sum(
-                    case(
-                        (Purchase.id.isnot(None), Product.price_in_cent),
-                        else_=0
-                    )
-                ),
+                func.sum(Purchase.price_of_purchase - Purchase.wholesale_cost_at_purchase),
                 0
             ).desc()
         )
@@ -131,8 +125,8 @@ def get_leaderboard(db: Session = Depends(get_db)):
         {
             "seller_id": result.id,
             "purchase_count": result.purchase_count,
-            "total_revenue_cents": result.total_revenue_cents,
-            "total_revenue_dollars": result.total_revenue_cents / 100.0
+            "total_profit_cents": result.total_profit_cents,
+            "total_profit_dollars": result.total_profit_cents / 100.0
         }
         for result in results
     ]

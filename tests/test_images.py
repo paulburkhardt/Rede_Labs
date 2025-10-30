@@ -79,7 +79,8 @@ class TestProductCreationWithImages:
             "short_description": "Soft towel",
             "long_description": "Very soft towel",
             "price": 2999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+        "towel_variant": "budget"
         }
         
         response = client.post(
@@ -100,7 +101,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+        "towel_variant": "budget"
         }
         
         response = client.post(
@@ -120,7 +122,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+        "towel_variant": "budget"
         }
         
         response = client.post(
@@ -138,7 +141,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": []
+            "image_ids": [],
+            "towel_variant": "budget",
         }
         
         response = client.post(
@@ -160,7 +164,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": ["fake-id-1", "fake-id-2"]
+            "image_ids": ["fake-id-1", "fake-id-2"],
+            "towel_variant": "budget",
         }
         
         response = client.post(
@@ -185,7 +190,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+            "towel_variant": "budget",
         }
         
         response = client.post(
@@ -208,7 +214,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+            "towel_variant": "budget",
         }
         
         response = client.post(
@@ -232,7 +239,8 @@ class TestProductCreationWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+            "towel_variant": "budget",
         }
         
         response = client.post(
@@ -255,7 +263,8 @@ class TestProductUpdateWithImages:
         new_image_ids = [sample_images["01"][1].id, sample_images["01"][2].id]
         
         update_data = {
-            "image_ids": new_image_ids
+            "image_ids": new_image_ids,
+            "towel_variant": "budget",
         }
         
         response = client.patch(
@@ -277,7 +286,8 @@ class TestProductUpdateWithImages:
         new_image_ids = [img.id for img in sample_images["02"]]
         
         update_data = {
-            "image_ids": new_image_ids
+            "image_ids": new_image_ids,
+            "towel_variant": "budget",
         }
         
         response = client.patch(
@@ -301,7 +311,8 @@ class TestProductUpdateWithImages:
         ]
         
         update_data = {
-            "image_ids": mixed_image_ids
+            "image_ids": mixed_image_ids    ,
+            "towel_variant": "budget",
         }
         
         response = client.patch(
@@ -316,7 +327,8 @@ class TestProductUpdateWithImages:
     def test_update_product_with_empty_images_fails(self, client, sample_product):
         """Test that updating to empty images fails"""
         update_data = {
-            "image_ids": []
+            "image_ids": [],
+            "towel_variant": "budget",
         }
         
         response = client.patch(
@@ -332,7 +344,8 @@ class TestProductUpdateWithImages:
         """Test updating other fields without changing images"""
         update_data = {
             "name": "Updated Product Name",
-            "price": 3999
+            "price": 3999,
+            "towel_variant": "budget",  
         }
         
         response = client.patch(
@@ -399,7 +412,8 @@ class TestProductRetrievalWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": [img.id for img in sample_images["01"]]
+            "image_ids": [img.id for img in sample_images["01"]],
+            "towel_variant": "budget"
         }
         
         response1 = client.post(
@@ -415,7 +429,8 @@ class TestProductRetrievalWithImages:
             "short_description": "Test",
             "long_description": "Test",
             "price": 2999,
-            "image_ids": [img.id for img in sample_images["02"]]
+            "image_ids": [img.id for img in sample_images["02"]],
+            "towel_variant": "budget"
         }
         
         response2 = client.post(
@@ -450,7 +465,8 @@ class TestImageSystemEdgeCases:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+            "towel_variant": "budget",
         }
         
         response = client.post(
@@ -476,7 +492,8 @@ class TestImageSystemEdgeCases:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+            "towel_variant": "budget",
         }
         
         response1 = client.post(
@@ -492,7 +509,8 @@ class TestImageSystemEdgeCases:
             "short_description": "Test",
             "long_description": "Test",
             "price": 2999,
-            "image_ids": image_ids
+            "image_ids": image_ids,
+            "towel_variant": "budget",
         }
         
         response2 = client.post(

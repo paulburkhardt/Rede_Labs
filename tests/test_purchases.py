@@ -173,7 +173,8 @@ class TestPurchaseWorkflow:
                 "short_description": "Luxurious and soft",
                 "long_description": "Made from 100% Egyptian cotton",
                 "price": 3999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {org['auth_token']}"}
         )
