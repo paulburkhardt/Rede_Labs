@@ -14,7 +14,8 @@ class TestAuthenticationSecurity:
             "short_description": "Test",
             "long_description": "Test",
             "price": 1999,
-            "image_ids": [sample_images["01"][0].id]
+            "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"
         }
         
         # Test with "Bearer " prefix
@@ -52,7 +53,8 @@ class TestAuthenticationSecurity:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -113,7 +115,8 @@ class TestMultipleSellersAndProducts:
             "short_description": "Great towel",
             "long_description": "Very nice towel",
             "price": 1999,
-            "image_ids": [sample_images["01"][0].id]
+            "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"
         }
         
         client.post(
@@ -150,7 +153,8 @@ class TestMultipleSellersAndProducts:
                     "short_description": f"Description {i}",
                     "long_description": f"Long description {i}",
                     "price": 1000 + (i * 100),
-                    "image_ids": [sample_images["01"][0].id]
+                    "image_ids": [sample_images["01"][0].id],
+                    "towel_variant": "budget"
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -231,7 +235,7 @@ class TestEdgeCases:
     """Test edge cases and boundary conditions"""
     
     def test_product_with_zero_price(self, client, sample_seller, sample_images):
-        """Test creating a product with zero price"""
+        """Test that creating a product with zero price is rejected"""
         response = client.post(
             "/product/free-product",
             json={
@@ -239,16 +243,16 @@ class TestEdgeCases:
                 "short_description": "Free",
                 "long_description": "Free product",
                 "price": 0,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
         
-        assert response.status_code == 200
-        
-        # Verify it was created
-        product = client.get("/product/free-product").json()
-        assert product["price_in_cent"] == 0
+        # Zero price should be rejected
+        assert response.status_code == 422
+        assert "price" in response.json()["detail"][0]["loc"]
+        assert "greater than 0" in response.json()["detail"][0]["msg"]
     
     def test_product_with_very_long_description(self, client, sample_seller, sample_images):
         """Test creating a product with very long descriptions"""
@@ -261,7 +265,8 @@ class TestEdgeCases:
                 "short_description": long_text,
                 "long_description": long_text,
                 "price": 1999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -278,7 +283,8 @@ class TestEdgeCases:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1999,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -323,7 +329,8 @@ class TestSalesStats:
             "short_description": "Test",
             "long_description": "Test",
             "price": 2500,
-            "image_ids": [sample_images["01"][0].id]
+            "image_ids": [sample_images["01"][0].id],
+            "towel_variant": "budget"
         }
         client.post(
             "/product/test-prod-1",
@@ -372,7 +379,8 @@ class TestSalesStats:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": 1000 * (i + 1),
-                    "image_ids": [sample_images["01"][0].id]
+                    "image_ids": [sample_images["01"][0].id],
+                    "towel_variant": "budget"
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -427,7 +435,8 @@ class TestSalesStats:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -439,7 +448,8 @@ class TestSalesStats:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
         )
@@ -506,7 +516,8 @@ class TestSalesStats:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1500,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -546,7 +557,8 @@ class TestSalesStats:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": 1000 * (i + 1),
-                    "image_ids": [sample_images["01"][0].id]
+                    "image_ids": [sample_images["01"][0].id],
+                    "towel_variant": "budget"
                 },
                 headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
             )
@@ -590,11 +602,11 @@ class TestLeaderboard:
         data = response.json()
         assert len(data) == 2
         
-        # All sellers should have zero revenue
+        # All sellers should have zero profit
         for entry in data:
             assert entry["purchase_count"] == 0
-            assert entry["total_revenue_cents"] == 0
-            assert entry["total_revenue_dollars"] == 0.0
+            assert entry["total_profit_cents"] == 0
+            assert entry["total_profit_dollars"] == 0.0
     
     def test_leaderboard_single_seller_single_purchase(
         self, client, sample_seller, sample_buyer, sample_images, set_phase
@@ -608,7 +620,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2500,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -630,8 +643,9 @@ class TestLeaderboard:
         entry = data[0]
         assert entry["seller_id"] == sample_seller["id"]
         assert entry["purchase_count"] == 1
-        assert entry["total_revenue_cents"] == 2500
-        assert entry["total_revenue_dollars"] == 25.0
+        # Profit = price (2500) - wholesale_cost (800) = 1700
+        assert entry["total_profit_cents"] == 1700
+        assert entry["total_profit_dollars"] == 17.0
     
     def test_leaderboard_multiple_sellers_sorted_by_revenue(
         self, client, sample_images, set_phase
@@ -656,7 +670,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
@@ -667,7 +682,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sellers[0]['auth_token']}"}
         )
@@ -680,7 +696,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 5000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sellers[1]['auth_token']}"}
         )
@@ -693,7 +710,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 500,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sellers[2]['auth_token']}"}
         )
@@ -724,20 +742,23 @@ class TestLeaderboard:
         data = response.json()
         assert len(data) == 3
         
-        # Verify sorting by revenue (descending)
-        assert data[0]["seller_id"] == sellers[1]["id"]  # $50
-        assert data[0]["total_revenue_cents"] == 5000
-        assert data[0]["total_revenue_dollars"] == 50.0
+        # Verify sorting by profit (descending)
+        # Seller 1: profit = 5000 - 800 = 4200
+        assert data[0]["seller_id"] == sellers[1]["id"]
+        assert data[0]["total_profit_cents"] == 4200
+        assert data[0]["total_profit_dollars"] == 42.0
         assert data[0]["purchase_count"] == 1
         
-        assert data[1]["seller_id"] == sellers[0]["id"]  # $30
-        assert data[1]["total_revenue_cents"] == 3000
-        assert data[1]["total_revenue_dollars"] == 30.0
+        # Seller 0: profit = (1000 - 800) + (2000 - 800) = 200 + 1200 = 1400
+        assert data[1]["seller_id"] == sellers[0]["id"]
+        assert data[1]["total_profit_cents"] == 1400
+        assert data[1]["total_profit_dollars"] == 14.0
         assert data[1]["purchase_count"] == 2
         
-        assert data[2]["seller_id"] == sellers[2]["id"]  # $5
-        assert data[2]["total_revenue_cents"] == 500
-        assert data[2]["total_revenue_dollars"] == 5.0
+        # Seller 2: profit = 500 - 800 = -300 (loss)
+        assert data[2]["seller_id"] == sellers[2]["id"]
+        assert data[2]["total_profit_cents"] == -300
+        assert data[2]["total_profit_dollars"] == -3.0
         assert data[2]["purchase_count"] == 1
     
     def test_leaderboard_same_product_multiple_purchases(
@@ -752,7 +773,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1500,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {sample_seller['auth_token']}"}
         )
@@ -778,8 +800,9 @@ class TestLeaderboard:
         entry = data[0]
         assert entry["seller_id"] == sample_seller["id"]
         assert entry["purchase_count"] == 3
-        assert entry["total_revenue_cents"] == 4500  # 1500 * 3
-        assert entry["total_revenue_dollars"] == 45.0
+        # Profit per purchase = 1500 - 800 = 700, total = 700 * 3 = 2100
+        assert entry["total_profit_cents"] == 2100
+        assert entry["total_profit_dollars"] == 21.0
     
     def test_leaderboard_seller_with_no_purchases(
         self, client, sample_images, set_phase
@@ -797,7 +820,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 1000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {seller1['auth_token']}"}
         )
@@ -808,7 +832,8 @@ class TestLeaderboard:
                 "short_description": "Test",
                 "long_description": "Test",
                 "price": 2000,
-                "image_ids": [sample_images["01"][0].id]
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
             },
             headers={"Authorization": f"Bearer {seller2['auth_token']}"}
         )
@@ -835,11 +860,12 @@ class TestLeaderboard:
         seller2_data = next((s for s in data if s["seller_id"] == seller2["id"]), None)
         
         assert seller1_data is not None
-        assert seller1_data["total_revenue_cents"] == 1000
+        # Profit = 1000 - 800 = 200
+        assert seller1_data["total_profit_cents"] == 200
         assert seller1_data["purchase_count"] == 1
         
         assert seller2_data is not None
-        assert seller2_data["total_revenue_cents"] == 0
+        assert seller2_data["total_profit_cents"] == 0
         assert seller2_data["purchase_count"] == 0
         
         # Seller 1 should be ranked higher (earlier in list) than seller 2
@@ -890,8 +916,8 @@ class TestLeaderboard:
         seller = client.post("/createSeller").json()
         buyer = client.post("/createBuyer").json()
         
-        # Create products with different prices
-        prices = [0, 99, 1000, 9999, 100000]  # $0, $0.99, $10, $99.99, $1000
+        # Create products with different prices (excluding 0 since it's not allowed)
+        prices = [1, 99, 1000, 9999, 100000]  # $0.01, $0.99, $10, $99.99, $1000
         product_ids: list[str] = []
         for i, price in enumerate(prices):
             client.post(
@@ -901,7 +927,8 @@ class TestLeaderboard:
                     "short_description": "Test",
                     "long_description": "Test",
                     "price": price,
-                    "image_ids": [sample_images["01"][0].id]
+                    "image_ids": [sample_images["01"][0].id],
+                    "towel_variant": "budget"
                 },
                 headers={"Authorization": f"Bearer {seller['auth_token']}"}
             )
@@ -922,9 +949,12 @@ class TestLeaderboard:
         assert len(data) == 1
         
         entry = data[0]
-        expected_total = sum(prices)
-        assert entry["total_revenue_cents"] == expected_total
-        assert entry["total_revenue_dollars"] == expected_total / 100.0
+        # Calculate expected profit: sum(price - 800) for each price
+        # prices = [1, 99, 1000, 9999, 100000]
+        # profits = [-799, -701, 200, 9199, 99200] = 107099
+        expected_profit = sum(p - 800 for p in prices)
+        assert entry["total_profit_cents"] == expected_profit
+        assert entry["total_profit_dollars"] == expected_profit / 100.0
         assert entry["purchase_count"] == 5
     
     def test_leaderboard_response_structure(self, client, sample_seller, sample_images):
@@ -940,13 +970,45 @@ class TestLeaderboard:
             entry = data[0]
             assert "seller_id" in entry
             assert "purchase_count" in entry
-            assert "total_revenue_cents" in entry
-            assert "total_revenue_dollars" in entry
+            assert "total_profit_cents" in entry
+            assert "total_profit_dollars" in entry
             
             assert isinstance(entry["seller_id"], str)
             assert isinstance(entry["purchase_count"], int)
-            assert isinstance(entry["total_revenue_cents"], int)
-            assert isinstance(entry["total_revenue_dollars"], float)
+            assert isinstance(entry["total_profit_cents"], int)
+            assert isinstance(entry["total_profit_dollars"], float)
+
+
+class TestPhaseAdministration:
+    """Test administrative phase management endpoints"""
+
+    def test_get_phase_returns_current_phase(self, client):
+        """Default phase should be seller management"""
+        response = client.get("/admin/phase")
+        assert response.status_code == 200
+        assert response.json()["phase"] == Phase.SELLER_MANAGEMENT.value
+
+    def test_update_phase_changes_current_phase(self, client):
+        """Phase update should persist and be retrievable"""
+        update_response = client.post(
+            "/admin/phase", json={"phase": Phase.BUYER_SHOPPING.value}
+        )
+        assert update_response.status_code == 200
+        assert update_response.json()["phase"] == Phase.BUYER_SHOPPING.value
+
+        fetch_response = client.get("/admin/phase")
+        assert fetch_response.status_code == 200
+        assert fetch_response.json()["phase"] == Phase.BUYER_SHOPPING.value
+
+    def test_update_phase_requires_valid_admin_key(self, client):
+        """Invalid admin key should be rejected"""
+        response = client.post(
+            "/admin/phase",
+            json={"phase": Phase.BUYER_SHOPPING.value},
+            headers={"X-Admin-Key": "wrong-key"},
+        )
+        assert response.status_code == 401
+        assert "Invalid or missing admin key" in response.json()["detail"]
 
 
 class TestPhaseAdministration:

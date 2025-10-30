@@ -1,7 +1,7 @@
 """Add metadata table for marketplace phases
 
 Revision ID: bd3be98698d9
-Revises: 3fa52ca77d79
+Revises: 2db08d31b570
 Create Date: 2025-10-29 21:40:39.968012
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'bd3be98698d9'
-down_revision = '3fa52ca77d79'
+down_revision = '2db08d31b570'
 branch_labels = None
 depends_on = None
 
