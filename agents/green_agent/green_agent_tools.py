@@ -18,6 +18,7 @@ import random
 import asyncio
 import toml
 from pathlib import Path
+import os
 
 
 
@@ -25,6 +26,7 @@ from pathlib import Path
 battle_context = None
 
 api_url = "http://localhost:8000"
+admin_api_key = os.getenv("ADMIN_API_KEY")
 
 
 from typing import NamedTuple
@@ -158,6 +160,7 @@ async def create_sellers(seller_infos: list):
         print(api_url + "/createSeller"),
         response = requests.post(
             api_url + "/createSeller",
+            headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
         print("🥥 Created seller")
         if response.status_code != 200:
@@ -193,7 +196,10 @@ async def create_buyer():
             raise Exception(f"No agent_port found for buyer agent: {buyer_agent.get('name')}")
         
         # Create buyer via API
-        response = requests.post(api_url + "/createBuyer")
+        response = requests.post(
+            api_url + "/createBuyer",
+            headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
+        )
         
         if response.status_code != 200:
             raise Exception(f"Failed to create buyer: {response.text}")
@@ -209,6 +215,7 @@ async def create_participants(no_participants: int, route: str):
         # todo: add super admin auth token
         response = requests.post(
             api_url + route,
+            headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
         if response.status_code != 200:
             raise Exception(f"Failed to create seller: {response.text}")

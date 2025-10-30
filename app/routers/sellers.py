@@ -7,19 +7,24 @@ from app.models.seller import Seller
 from app.models.product import Product
 from app.models.purchase import Purchase
 from app.models.buyer import Buyer
+from app.config import settings
 
 router = APIRouter(prefix="", tags=["sellers"])
 
 
 @router.post("/createSeller", response_model=SellerResponse)
 def create_seller(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    x_admin_key: str | None = Header(default=None, alias="X-Admin-Key")
 ):
     """
     Create a new seller.
     White agents use this endpoint to create their seller.
     Returns the seller with an auth_token for future API calls.
     """
+    # Validate admin key
+    if x_admin_key != settings.admin_api_key:
+        raise HTTPException(status_code=401, detail="Invalid or missing admin key")
     print("Creating seller")    
     # Create new seller
     db_seller = Seller()
@@ -72,7 +77,6 @@ def get_sales_stats(
                 product_id=product.id,
                 product_name=product.name,
                 buyer_id=buyer.id,
-                buyer_name=buyer.name,
                 price_in_cent=product.price_in_cent,
                 currency=product.currency,
                 purchased_at=purchase.purchased_at

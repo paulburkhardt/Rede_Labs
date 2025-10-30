@@ -402,7 +402,7 @@ class TestRankingWithPurchaseStats:
         seller2 = client.post("/createSeller").json()
         
         # Create buyer
-        buyer = client.post("/createBuyer", json={"name": "Test Buyer"}).json()
+        buyer = client.post("/createBuyer").json()
         
         # Create products for each seller
         product1_data = {

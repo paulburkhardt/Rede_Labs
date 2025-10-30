@@ -36,13 +36,3 @@ class TestSellerCreation:
         assert seller1["id"] != seller2["id"]
         assert seller1["auth_token"] != seller2["auth_token"]
     
-    def test_create_seller_with_empty_name(self, client):
-        """Test seller creation"""
-        response = client.post(
-            "/createSeller"
-        )
-        
-        # Should create successfully (name field removed)
-        assert response.status_code == 200
-        data = response.json()
-        assert "name" not in data  # Name field should not exist

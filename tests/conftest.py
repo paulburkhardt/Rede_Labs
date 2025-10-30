@@ -46,6 +46,11 @@ def client(db_session):
     """Create a test client with fresh database"""
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
+        admin_key = settings.admin_api_key
+        if not admin_key:
+            raise ValueError("Admin API key is not set")
+        settings.admin_api_key = admin_key
+        test_client.headers.update({"X-Admin-Key": admin_key})
         yield test_client
     app.dependency_overrides.clear()
 
@@ -65,7 +70,6 @@ def sample_buyer(client):
     """Create a sample buyer and return its data"""
     response = client.post(
         "/createBuyer",
-        json={"name": "Test Buyer"}
     )
     assert response.status_code == 200
     return response.json()

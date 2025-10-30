@@ -15,7 +15,6 @@ class PurchaseInfo(BaseModel):
     product_id: str
     product_name: str
     buyer_id: str
-    buyer_name: str
     price_in_cent: int
     currency: str
     purchased_at: int
