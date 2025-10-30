@@ -42,21 +42,8 @@ class Buyer(NamedTuple):
     url: str
     token: str
 
-class ProductImage(NamedTuple):
-    base64: str
-    image_description: str
-
 sellers : list[Seller] = []
 buyers : list[Buyer] = []
-
-# Mock base64 image (1x1 transparent PNG)
-MOCK_BASE64_IMAGE = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-
-product_images: list[ProductImage] = [
-    ProductImage(base64=MOCK_BASE64_IMAGE, image_description="Product image 1"),
-    ProductImage(base64=MOCK_BASE64_IMAGE, image_description="Product image 2"),
-    ProductImage(base64=MOCK_BASE64_IMAGE, image_description="Product image 3"),
-]
 
 @ab.tool
 async def handle_incoming_message(message: str) -> str:
