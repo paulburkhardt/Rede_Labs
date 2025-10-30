@@ -8,6 +8,7 @@ class PurchaseCreate(BaseModel):
 class PurchaseResponse(BaseModel):
     id: str
     product_id: str
+    price_of_purchase: int
 
     class Config:
         from_attributes = True

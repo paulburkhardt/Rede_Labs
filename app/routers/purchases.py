@@ -41,7 +41,8 @@ def create_purchase(
     db_purchase = Purchase(
         product_id=product_id,
         buyer_id=buyer.id,
-        purchased_at=purchase.purchased_at
+        purchased_at=purchase.purchased_at,
+        price_of_purchase=product.price_in_cent
     )
     db.add(db_purchase)
     db.commit()
@@ -89,21 +90,15 @@ def get_leaderboard(db: Session = Depends(get_db)):
     Returns a list of sellers sorted by total revenue (descending).
     """
     from app.models.seller import Seller
-    from sqlalchemy import case
     
     # Query to calculate total revenue and purchase count per seller
-    # Only sum prices where there's an actual purchase (Purchase.id is not null)
+    # Sum the price_of_purchase from the purchases table
     results = (
         db.query(
             Seller.id,
             func.count(Purchase.id).label("purchase_count"),
             func.coalesce(
-                func.sum(
-                    case(
-                        (Purchase.id.isnot(None), Product.price_in_cent),
-                        else_=0
-                    )
-                ),
+                func.sum(Purchase.price_of_purchase),
                 0
             ).label("total_revenue_cents")
         )
@@ -112,12 +107,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
         .group_by(Seller.id)
         .order_by(
             func.coalesce(
-                func.sum(
-                    case(
-                        (Purchase.id.isnot(None), Product.price_in_cent),
-                        else_=0
-                    )
-                ),
+                func.sum(Purchase.price_of_purchase),
                 0
             ).desc()
         )

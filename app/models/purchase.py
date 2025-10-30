@@ -11,3 +11,4 @@ class Purchase(Base):
     product_id = Column(String, ForeignKey("products.id"), nullable=False)
     buyer_id = Column(String, ForeignKey("buyers.id"), nullable=False)
     purchased_at = Column(Integer, nullable=False)
+    price_of_purchase = Column(Integer, nullable=False)
