@@ -19,7 +19,7 @@ import asyncio
 import toml
 from pathlib import Path
 import os
-from app.services.phase_manager import Phase
+from enum import Enum
 import subprocess
 import sys
 
@@ -48,6 +48,17 @@ class Buyer(NamedTuple):
 
 sellers: list[Seller] = []
 buyers: list[Buyer] = []
+
+# If you change something here, also change it in app/services/phase_manager.py
+class Phase(str, Enum):
+    """Lifecycle phases that gate marketplace operations."""
+
+    #: Phase for seller management, where sellers can update listings
+    SELLER_MANAGEMENT = "seller_management"
+    #: Phase for buyer shopping, where buyers can purchase products
+    BUYER_SHOPPING = "buyer_shopping"
+    #: Phase for open marketplace, where all interactions are allowed
+    OPEN = "open"
 
 
 def change_phase(phase: Phase) -> None:

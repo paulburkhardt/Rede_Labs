@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.metadata import Metadata
 
 
+# If you change something here, also change it in agents/green_agent/green_agent_tools.py 
 class Phase(str, Enum):
     """Lifecycle phases that gate marketplace operations."""
 
