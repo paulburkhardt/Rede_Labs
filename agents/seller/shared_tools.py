@@ -5,14 +5,101 @@ These tools allow seller agents to interact with the marketplace API.
 """
 
 import os
+import sys
+from pathlib import Path
+
+# Add agents directory to sys.path to enable shared battle_logger import
+agents_dir = Path(__file__).parent.parent
+if str(agents_dir) not in sys.path:
+    sys.path.insert(0, str(agents_dir))
+
 import requests
 import agentbeats as ab
 from typing import Optional
+
+# Import battle logger - this will be cached by Python's import system
+# ensuring all modules share the same instance
+import battle_logger
+from agentbeats.logging import BattleContext
+log_tool_request = battle_logger.log_tool_request
+log_tool_response = battle_logger.log_tool_response
 
 # API configuration
 API_URL = os.getenv("MARKETPLACE_API_URL", "http://localhost:8000")
 
 # No longer need mock base64 images - we use image IDs from the database
+
+
+# Initialize battle context from database metadata
+# This allows seller agents to retrieve battle context stored by the green agent
+_seller_counter = 0
+_last_battle_id = None
+
+def _get_seller_id_from_token(auth_token: str) -> Optional[str]:
+    """Extract seller ID from auth token by making a test API call."""
+    try:
+        # Use getSalesStats to identify which seller this is
+        response = requests.get(
+            f"{API_URL}/getSalesStats",
+            headers={"Authorization": f"Bearer {auth_token}"}
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("seller_id")
+    except:
+        pass
+    return None
+
+
+def _get_battle_context_from_db(auth_token: Optional[str] = None):
+    """Retrieve battle context from database metadata and update if battle_id changed."""
+    global _seller_counter, _last_battle_id
+    
+    try:
+        # Retrieve battle metadata from the API
+        response = requests.get(f"{API_URL}/admin/metadata")
+        if response.status_code == 200:
+            metadata = response.json()
+            battle_id = metadata.get("battle_id")
+            backend_url = metadata.get("backend_url")
+            
+            if battle_id and backend_url:
+                # Check if this is a new battle
+                if battle_id != _last_battle_id:
+                    # Try to get actual agent name from seller_names mapping
+                    agent_name = f"seller{_seller_counter + 1}"  # Default fallback
+                    
+                    if auth_token:
+                        seller_id = _get_seller_id_from_token(auth_token)
+                        if seller_id:
+                            # Retrieve seller names mapping
+                            names_response = requests.get(f"{API_URL}/admin/metadata/seller_names")
+                            if names_response.status_code == 200:
+                                seller_names = names_response.json().get("seller_names", {})
+                                agent_name = seller_names.get(seller_id, agent_name)
+                    
+                    _seller_counter += 1
+                    context = BattleContext(
+                        battle_id=battle_id,
+                        backend_url=backend_url,
+                        agent_name=agent_name
+                    )
+                    battle_logger.set_battle_context(context)
+                    _last_battle_id = battle_id
+                    print(f"✅ Seller agent '{agent_name}': Battle context initialized from database")
+                    print(f"   battle_id={battle_id}, backend_url={backend_url}")
+                return True
+            else:
+                print(f"⚠️  Seller agent: Metadata retrieved but missing values - battle_id={battle_id}, backend_url={backend_url}")
+        else:
+            print(f"⚠️  Seller agent: Failed to retrieve metadata - Status {response.status_code}")
+    except Exception as e:
+        print(f"⚠️  Seller agent: Exception retrieving battle context: {e}")
+    
+    return False
+
+# Try to initialize on module load
+_get_battle_context_from_db()
 
 
 def get_auth_header(auth_token: str) -> dict:
@@ -79,6 +166,12 @@ def create_product(
         ...     towel_variant="premium"  # REQUIRED: Must specify towel variant
         ... )
     """
+    # Lazy initialization - try to get battle context if not already initialized
+    _get_battle_context_from_db(auth_token)
+    
+    log_tool_request("create_product", product_id=product_id, name=name, price=price, 
+                     towel_variant=towel_variant, image_count=len(image_ids), auth_token=auth_token)
+    
     payload = {
         "name": name,
         "short_description": short_description,
@@ -95,6 +188,7 @@ def create_product(
     )
     
     if response.status_code == 200:
+        log_tool_response("create_product", True, f"Created '{name}' at ${price/100:.2f} ({towel_variant})")
         return {
             "success": True,
             "product_id": product_id,
@@ -102,6 +196,7 @@ def create_product(
             "data": response.json()
         }
     else:
+        log_tool_response("create_product", False, f"Error: {response.status_code}")
         return {
             "success": False,
             "product_id": product_id,
@@ -161,6 +256,19 @@ def update_product(
         ...     towel_variant="mid_tier"  # Optional: Change to mid-tier variant
         ... )
     """
+    # Build update summary for logging
+    updates = []
+    if name is not None:
+        updates.append(f"name='{name}'")
+    if price is not None:
+        updates.append(f"price=${price/100:.2f}")
+    if towel_variant is not None:
+        updates.append(f"variant={towel_variant}")
+    if image_ids is not None:
+        updates.append(f"images={len(image_ids)}")
+    
+    log_tool_request("update_product", product_id=product_id, updates=", ".join(updates), auth_token=auth_token)
+    
     payload = {}
     
     if name is not None:
@@ -183,6 +291,7 @@ def update_product(
     )
     
     if response.status_code == 200:
+        log_tool_response("update_product", True, f"Updated {product_id}: {', '.join(updates)}")
         return {
             "success": True,
             "product_id": product_id,
@@ -190,6 +299,7 @@ def update_product(
             "data": response.json()
         }
     else:
+        log_tool_response("update_product", False, f"Error: {response.status_code}")
         return {
             "success": False,
             "product_id": product_id,
@@ -212,17 +322,24 @@ def get_sales_stats(auth_token: str):
     Example:
         >>> get_sales_stats(auth_token="abc123")
     """
+    log_tool_request("get_sales_stats", auth_token=auth_token)
+    
     response = requests.get(
         f"{API_URL}/getSalesStats",
         headers=get_auth_header(auth_token)
     )
     
     if response.status_code == 200:
+        data = response.json()
+        total_sales = data.get("total_sales", 0)
+        total_revenue = data.get("total_revenue_cents", 0) / 100
+        log_tool_response("get_sales_stats", True, f"{total_sales} sales, ${total_revenue:.2f} revenue")
         return {
             "success": True,
-            "data": response.json()
+            "data": data
         }
     else:
+        log_tool_response("get_sales_stats", False, f"Error: {response.status_code}")
         return {
             "success": False,
             "error": response.text,
