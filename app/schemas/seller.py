@@ -18,6 +18,7 @@ class PurchaseInfo(BaseModel):
     price_in_cent: int
     currency: str
     purchased_at: int
+    round: int
 
     class Config:
         from_attributes = True

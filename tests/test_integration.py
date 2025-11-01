@@ -365,6 +365,8 @@ class TestSalesStats:
         assert purchase["price_in_cent"] == 2500
         assert purchase["currency"] == "USD"
         assert "purchased_at" in purchase
+        assert "round" in purchase
+        assert isinstance(purchase["round"], int)
     
     def test_get_sales_stats_with_multiple_purchases(
         self, client, sample_seller, sample_images, set_phase
@@ -584,10 +586,31 @@ class TestSalesStats:
         for purchase in data["purchases"]:
             assert "purchased_at" in purchase
             assert isinstance(purchase["purchased_at"], int)
+            assert "round" in purchase
+            assert isinstance(purchase["round"], int)
 
 
 class TestLeaderboard:
     """Test leaderboard endpoint"""
+
+    @staticmethod
+    def _get_round_data(payload, round_number=None):
+        """Retrieve the leaderboard payload for the requested round."""
+        target_round = payload["current_round"] if round_number is None else round_number
+        for round_data in payload.get("rounds", []):
+            if round_data["round"] == target_round:
+                return round_data
+        raise AssertionError(f"Round {target_round} data not found in payload")
+
+    @classmethod
+    def _get_leaderboard(cls, payload, round_number=None):
+        """Return leaderboard entries for the requested round."""
+        return cls._get_round_data(payload, round_number)["leaderboard"]
+
+    @staticmethod
+    def _get_overall(payload):
+        """Return overall leaderboard entries."""
+        return payload["overall"]["leaderboard"]
     
     def test_leaderboard_no_sales(self, client, sample_images):
         """Test leaderboard with no sales returns sellers with zero revenue"""
@@ -600,13 +623,21 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 2
+        current_leaderboard = self._get_leaderboard(data)
+        assert len(current_leaderboard) == 2
         
         # All sellers should have zero profit
-        for entry in data:
+        for entry in current_leaderboard:
             assert entry["purchase_count"] == 0
             assert entry["total_profit_cents"] == 0
             assert entry["total_profit_dollars"] == 0.0
+        assert set(data["overall"]["winners"]) == {
+            seller1["id"],
+            seller2["id"],
+        }
+        overall = self._get_overall(data)
+        for entry in overall:
+            assert entry["round_wins"] == 0
     
     def test_leaderboard_single_seller_single_purchase(
         self, client, sample_seller, sample_buyer, sample_images, set_phase
@@ -638,9 +669,10 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
+        leaderboard = self._get_leaderboard(data)
+        assert len(leaderboard) == 1
         
-        entry = data[0]
+        entry = leaderboard[0]
         assert entry["seller_id"] == sample_seller["id"]
         assert entry["purchase_count"] == 1
         # Profit = price (2500) - wholesale_cost (800) = 1700
@@ -740,26 +772,32 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 3
+        leaderboard = self._get_leaderboard(data)
+        assert len(leaderboard) == 3
         
         # Verify sorting by profit (descending)
         # Seller 1: profit = 5000 - 800 = 4200
-        assert data[0]["seller_id"] == sellers[1]["id"]
-        assert data[0]["total_profit_cents"] == 4200
-        assert data[0]["total_profit_dollars"] == 42.0
-        assert data[0]["purchase_count"] == 1
+        assert leaderboard[0]["seller_id"] == sellers[1]["id"]
+        assert leaderboard[0]["total_profit_cents"] == 4200
+        assert leaderboard[0]["total_profit_dollars"] == 42.0
+        assert leaderboard[0]["purchase_count"] == 1
         
         # Seller 0: profit = (1000 - 800) + (2000 - 800) = 200 + 1200 = 1400
-        assert data[1]["seller_id"] == sellers[0]["id"]
-        assert data[1]["total_profit_cents"] == 1400
-        assert data[1]["total_profit_dollars"] == 14.0
-        assert data[1]["purchase_count"] == 2
+        assert leaderboard[1]["seller_id"] == sellers[0]["id"]
+        assert leaderboard[1]["total_profit_cents"] == 1400
+        assert leaderboard[1]["total_profit_dollars"] == 14.0
+        assert leaderboard[1]["purchase_count"] == 2
         
         # Seller 2: profit = 500 - 800 = -300 (loss)
-        assert data[2]["seller_id"] == sellers[2]["id"]
-        assert data[2]["total_profit_cents"] == -300
-        assert data[2]["total_profit_dollars"] == -3.0
-        assert data[2]["purchase_count"] == 1
+        assert leaderboard[2]["seller_id"] == sellers[2]["id"]
+        assert leaderboard[2]["total_profit_cents"] == -300
+        assert leaderboard[2]["total_profit_dollars"] == -3.0
+        assert leaderboard[2]["purchase_count"] == 1
+
+        overall = self._get_overall(data)
+        assert overall[0]["seller_id"] == sellers[1]["id"]
+        assert overall[0]["round_wins"] == 1
+        assert data["overall"]["winners"] == [sellers[1]["id"]]
     
     def test_leaderboard_same_product_multiple_purchases(
         self, client, sample_seller, sample_images, set_phase
@@ -795,9 +833,10 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
+        leaderboard = self._get_leaderboard(data)
+        assert len(leaderboard) == 1
         
-        entry = data[0]
+        entry = leaderboard[0]
         assert entry["seller_id"] == sample_seller["id"]
         assert entry["purchase_count"] == 3
         # Profit per purchase = 1500 - 800 = 700, total = 700 * 3 = 2100
@@ -853,11 +892,12 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 2
+        leaderboard = self._get_leaderboard(data)
+        assert len(leaderboard) == 2
         
         # Find seller 1 and seller 2 in the results
-        seller1_data = next((s for s in data if s["seller_id"] == seller1["id"]), None)
-        seller2_data = next((s for s in data if s["seller_id"] == seller2["id"]), None)
+        seller1_data = next((s for s in leaderboard if s["seller_id"] == seller1["id"]), None)
+        seller2_data = next((s for s in leaderboard if s["seller_id"] == seller2["id"]), None)
         
         assert seller1_data is not None
         # Profit = 1000 - 800 = 200
@@ -869,8 +909,8 @@ class TestLeaderboard:
         assert seller2_data["purchase_count"] == 0
         
         # Seller 1 should be ranked higher (earlier in list) than seller 2
-        seller1_index = data.index(seller1_data)
-        seller2_index = data.index(seller2_data)
+        seller1_index = leaderboard.index(seller1_data)
+        seller2_index = leaderboard.index(seller2_data)
         assert seller1_index < seller2_index
     
     def test_leaderboard_with_free_products(
@@ -904,9 +944,10 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
+        leaderboard = self._get_leaderboard(data)
+        assert len(leaderboard) == 1
         
-        entry = data[0]
+        entry = leaderboard[0]
         assert entry["seller_id"] == sample_seller["id"]
         assert entry["purchase_count"] == 1
         # Profit = 1 - 800 = -799 (loss)
@@ -949,9 +990,10 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
+        leaderboard = self._get_leaderboard(data)
+        assert len(leaderboard) == 1
         
-        entry = data[0]
+        entry = leaderboard[0]
         # Calculate expected profit: sum(price - 800) for each price
         # prices = [1, 99, 1000, 9999, 100000]
         # profits = [-799, -701, 200, 9199, 99200] = 107099
@@ -966,20 +1008,118 @@ class TestLeaderboard:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        
-        # Even with one seller, check structure
-        if len(data) > 0:
-            entry = data[0]
-            assert "seller_id" in entry
-            assert "purchase_count" in entry
-            assert "total_profit_cents" in entry
-            assert "total_profit_dollars" in entry
-            
-            assert isinstance(entry["seller_id"], str)
-            assert isinstance(entry["purchase_count"], int)
-            assert isinstance(entry["total_profit_cents"], int)
-            assert isinstance(entry["total_profit_dollars"], float)
+        assert isinstance(data, dict)
+        assert "current_round" in data
+        assert "rounds" in data
+        assert "overall" in data
+
+        assert isinstance(data["rounds"], list)
+        if data["rounds"]:
+            round_entry = data["rounds"][0]
+            assert "round" in round_entry
+            assert "is_current_round" in round_entry
+            assert "leaderboard" in round_entry
+            assert "winners" in round_entry
+
+            leaderboard = round_entry["leaderboard"]
+            assert isinstance(leaderboard, list)
+
+            if leaderboard:
+                entry = leaderboard[0]
+                assert "seller_id" in entry
+                assert "purchase_count" in entry
+                assert "total_profit_cents" in entry
+                assert "total_profit_dollars" in entry
+
+                assert isinstance(entry["seller_id"], str)
+                assert isinstance(entry["purchase_count"], int)
+                assert isinstance(entry["total_profit_cents"], int)
+                assert isinstance(entry["total_profit_dollars"], float)
+
+        assert "leaderboard" in data["overall"]
+        assert "winners" in data["overall"]
+
+    def test_leaderboard_across_rounds(
+        self,
+        client,
+        sample_images,
+        set_phase,
+        set_round,
+    ):
+        """Leaderboard should track each round and overall winners."""
+        seller1 = client.post("/createSeller").json()
+        seller2 = client.post("/createSeller").json()
+        buyer = client.post("/createBuyer").json()
+
+        client.post(
+            "/product/seller1-prod",
+            json={
+                "name": "Round 1 Winner",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 5000,
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget",
+            },
+            headers={"Authorization": f"Bearer {seller1['auth_token']}"},
+        )
+        client.post(
+            "/product/seller2-prod",
+            json={
+                "name": "Round 2 Winner",
+                "short_description": "Test",
+                "long_description": "Test",
+                "price": 7000,
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget",
+            },
+            headers={"Authorization": f"Bearer {seller2['auth_token']}"},
+        )
+
+        set_phase(Phase.BUYER_SHOPPING)
+        # Round 1 purchases – seller 1 wins
+        for _ in range(2):
+            client.post(
+                "/buy/seller1-prod",
+                headers={"Authorization": f"Bearer {buyer['auth_token']}"},
+            )
+
+        # Move to round 2
+        set_round(2)
+        set_phase(Phase.BUYER_SHOPPING)
+        # Round 2 purchases – seller 2 wins
+        for _ in range(3):
+            client.post(
+                "/buy/seller2-prod",
+                headers={"Authorization": f"Bearer {buyer['auth_token']}"},
+            )
+
+        response = client.get("/buy/stats/leaderboard")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["current_round"] == 2
+        round1 = self._get_round_data(data, 1)
+        round2 = self._get_round_data(data, 2)
+
+        assert round1["winners"] == [seller1["id"]]
+        assert round2["winners"] == [seller2["id"]]
+
+        leaderboard_round1 = round1["leaderboard"]
+        leaderboard_round2 = round2["leaderboard"]
+        seller1_round1 = next(entry for entry in leaderboard_round1 if entry["seller_id"] == seller1["id"])
+        seller2_round1 = next(entry for entry in leaderboard_round1 if entry["seller_id"] == seller2["id"])
+        seller1_round2 = next(entry for entry in leaderboard_round2 if entry["seller_id"] == seller1["id"])
+        seller2_round2 = next(entry for entry in leaderboard_round2 if entry["seller_id"] == seller2["id"])
+
+        assert seller1_round1["purchase_count"] == 2
+        assert seller2_round1["purchase_count"] == 0
+        assert seller2_round2["purchase_count"] == 3
+        assert seller1_round2["purchase_count"] == 0
+
+        overall = self._get_overall(data)
+        assert overall[0]["round_wins"] == 1
+        assert set(data["overall"]["winners"]) == {seller1["id"], seller2["id"]}
 
 
 class TestPhaseAdministration:

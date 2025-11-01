@@ -9,9 +9,12 @@ from app.schemas.metadata import (
     PhaseUpdateRequest,
     DayResponse,
     DayUpdateRequest,
+    RoundResponse,
+    RoundUpdateRequest,
 )
 from app.services.phase_manager import get_current_phase, set_current_phase
 from app.services.day_manager import get_current_day, set_current_day
+from app.services.round_manager import get_current_round, set_current_round
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -68,6 +71,26 @@ def update_day(
     new_day = set_current_day(db, day_update.day)
     return DayResponse(day=new_day)
 
+
+@router.get("/round", response_model=RoundResponse)
+def get_round(
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> RoundResponse:
+    """Return the currently configured simulation round."""
+    current_round = get_current_round(db)
+    return RoundResponse(round=current_round)
+
+
+@router.post("/round", response_model=RoundResponse)
+def update_round(
+    round_update: RoundUpdateRequest,
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> RoundResponse:
+    """Update the simulation round."""
+    new_round = set_current_round(db, round_update.round)
+    return RoundResponse(round=new_round)
 
 @router.post("/metadata")
 def store_battle_metadata(

@@ -58,6 +58,8 @@ def client(db_session):
         assert response.status_code == 200, response.text
         response = test_client.post("/admin/day", json={"day": 0})
         assert response.status_code == 200, response.text
+        response = test_client.post("/admin/round", json={"round": 1})
+        assert response.status_code == 200, response.text
         yield test_client
     app.dependency_overrides.clear()
 
@@ -164,6 +166,21 @@ def set_day(client):
         response = client.post(
             "/admin/day",
             json={"day": day},
+        )
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    return _set
+
+
+@pytest.fixture
+def set_round(client):
+    """Utility fixture to configure the simulation round during a test."""
+
+    def _set(round_number: int):
+        response = client.post(
+            "/admin/round",
+            json={"round": round_number},
         )
         assert response.status_code == 200, response.text
         return response.json()
