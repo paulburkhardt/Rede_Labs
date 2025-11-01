@@ -410,7 +410,7 @@ async def create_listings():
     timeout_minutes = 2  # Timeout duration in minutes
     timeout_seconds = timeout_minutes * 60
 
-    prompt_template = f"""
+    prompt_template = """
 Call /createProduct to create a product.
 
 Your seller ID: {id}
@@ -461,7 +461,7 @@ async def buyers_buy_products():
     timeout_minutes = 2  # Timeout duration in minutes
     timeout_seconds = timeout_minutes * 60
 
-    prompt_template = f"""
+    prompt_template = """
 Call /search?q=keyword to find your product you want to buy. You can call /product/{{id}} to get more details about the product.
 
 Your buyer ID: {id}
@@ -488,7 +488,7 @@ async def sellers_update_listings():
     timeout_minutes = 2  # Timeout duration in minutes
     timeout_seconds = timeout_minutes * 60
 
-    prompt_template = f"""
+    prompt_template = """
 Call /updateProduct to update your product.
 
 Your seller ID: {id}
