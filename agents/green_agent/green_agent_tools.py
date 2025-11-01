@@ -424,10 +424,7 @@ Response format:
 }}
         """
 
-    record_battle_event(battle_context, "Telling sellers to create products...")
-    messages = [prompt_template.format(id=seller.id, token=seller.token) for seller in sellers]
-    target_urls = [seller.url for seller in sellers]
-    await send_messages_to_agents(target_urls, messages, timeout_seconds)
+    await _send_prompts_to_agents(sellers, prompt_template, "Telling sellers to create products...", timeout_seconds)
 
 
 async def create_ranking():
@@ -478,10 +475,7 @@ Response format:
 }}
         """
 
-    record_battle_event(battle_context, "Telling buyers to buy products...")
-    messages = [prompt_template.format(id=buyer.id, token=buyer.token) for buyer in buyers]
-    target_urls = [buyer.url for buyer in buyers]
-    await send_messages_to_agents(target_urls, messages, timeout_seconds)
+    await _send_prompts_to_agents(buyers, prompt_template, "Telling buyers to buy products...", timeout_seconds)
 
 
 async def sellers_update_listings():
@@ -502,10 +496,7 @@ Response format:
 }}
         """
 
-    record_battle_event(battle_context, "Telling sellers to update products...")
-    messages = [prompt_template.format(id=seller.id, token=seller.token) for seller in sellers]
-    target_urls = [seller.url for seller in sellers]
-    await send_messages_to_agents(target_urls, messages, timeout_seconds)
+    await _send_prompts_to_agents(sellers, prompt_template, "Telling sellers to update products...", timeout_seconds)
 
 
 async def report_leaderboard():
@@ -576,3 +567,13 @@ async def report_leaderboard():
         error_msg = f"Error reporting leaderboard: {str(e)}"
         record_battle_event(battle_context, error_msg)
         print(error_msg)
+
+
+async def _send_prompts_to_agents(agents: list, prompt_template: str, log_message: str, timeout_seconds: int):
+    """Helper to send a templated prompt to a list of agents."""
+    if battle_context:
+        record_battle_event(battle_context, log_message)
+    
+    messages = [prompt_template.format(id=agent.id, token=agent.token) for agent in agents]
+    target_urls = [agent.url for agent in agents]
+    await send_messages_to_agents(target_urls, messages, timeout_seconds)
