@@ -390,6 +390,8 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
 
 
 async def create_sellers(seller_infos: list):
+    seller_names = {}  # Map seller_id to agent_name
+    
     for seller_info in seller_infos:
         # todo: add super admin auth token
         print("🥥 Creating seller")
@@ -405,11 +407,25 @@ async def create_sellers(seller_infos: list):
         token = json.get("auth_token")
         agent_name = seller_info.get("name", "Unknown Seller")
         sellers.append(Seller(id=id, url=seller_info.get("agent_url"), token=token, name=agent_name))
+        seller_names[id] = agent_name
         
         message = f"🥥 Created seller {id} ({agent_name})"
         print(message)
         if battle_context:
             record_battle_event(battle_context, f"Created seller {id} ({agent_name})")
+    
+    # Store seller names in metadata so seller agents can retrieve their actual names
+    try:
+        headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+        import json as json_module
+        requests.post(
+            f"{api_url}/admin/metadata/seller_names",
+            json={"seller_names": seller_names},
+            headers=headers
+        )
+        print(f"✅ Stored seller names in metadata: {seller_names}")
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to store seller names: {e}")
 
 
 async def create_buyer():

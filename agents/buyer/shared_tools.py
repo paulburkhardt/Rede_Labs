@@ -31,15 +31,11 @@ API_URL = os.getenv("MARKETPLACE_API_URL", "http://localhost:8000")
 # Initialize battle context from database metadata
 # This allows buyer agents to retrieve battle context stored by the green agent
 _buyer_counter = 0
-_battle_context_initialized = False
+_last_battle_id = None
 
 def _get_battle_context_from_db():
-    """Retrieve battle context from database metadata and initialize if found."""
-    global _buyer_counter, _battle_context_initialized
-    
-    # Only initialize once per agent process
-    if _battle_context_initialized:
-        return True
+    """Retrieve battle context from database metadata and update if battle_id changed."""
+    global _buyer_counter, _last_battle_id
     
     try:
         # Retrieve battle metadata from the API
@@ -50,17 +46,19 @@ def _get_battle_context_from_db():
             backend_url = metadata.get("backend_url")
             
             if battle_id and backend_url:
-                _buyer_counter += 1
-                agent_name = f"buyer{_buyer_counter}"
-                context = BattleContext(
-                    battle_id=battle_id,
-                    backend_url=backend_url,
-                    agent_name=agent_name
-                )
-                battle_logger.set_battle_context(context)
-                _battle_context_initialized = True
-                print(f"✅ Buyer agent '{agent_name}': Battle context initialized from database")
-                print(f"   battle_id={battle_id}, backend_url={backend_url}")
+                # Check if this is a new battle
+                if battle_id != _last_battle_id:
+                    _buyer_counter += 1
+                    agent_name = f"buyer{_buyer_counter}"
+                    context = BattleContext(
+                        battle_id=battle_id,
+                        backend_url=backend_url,
+                        agent_name=agent_name
+                    )
+                    battle_logger.set_battle_context(context)
+                    _last_battle_id = battle_id
+                    print(f"✅ Buyer agent '{agent_name}': Battle context initialized from database")
+                    print(f"   battle_id={battle_id}, backend_url={backend_url}")
                 return True
             else:
                 print(f"⚠️  Buyer agent: Metadata retrieved but missing values - battle_id={battle_id}, backend_url={backend_url}")

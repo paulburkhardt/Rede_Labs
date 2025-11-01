@@ -33,15 +33,27 @@ API_URL = os.getenv("MARKETPLACE_API_URL", "http://localhost:8000")
 # Initialize battle context from database metadata
 # This allows seller agents to retrieve battle context stored by the green agent
 _seller_counter = 0
-_battle_context_initialized = False
+_last_battle_id = None
 
-def _get_battle_context_from_db():
-    """Retrieve battle context from database metadata and initialize if found."""
-    global _seller_counter, _battle_context_initialized
-    
-    # Only initialize once per agent process
-    if _battle_context_initialized:
-        return True
+def _get_seller_id_from_token(auth_token: str) -> Optional[str]:
+    """Extract seller ID from auth token by making a test API call."""
+    try:
+        # Use getSalesStats to identify which seller this is
+        response = requests.get(
+            f"{API_URL}/getSalesStats",
+            headers={"Authorization": f"Bearer {auth_token}"}
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("seller_id")
+    except:
+        pass
+    return None
+
+
+def _get_battle_context_from_db(auth_token: Optional[str] = None):
+    """Retrieve battle context from database metadata and update if battle_id changed."""
+    global _seller_counter, _last_battle_id
     
     try:
         # Retrieve battle metadata from the API
@@ -52,17 +64,30 @@ def _get_battle_context_from_db():
             backend_url = metadata.get("backend_url")
             
             if battle_id and backend_url:
-                _seller_counter += 1
-                agent_name = f"seller{_seller_counter}"
-                context = BattleContext(
-                    battle_id=battle_id,
-                    backend_url=backend_url,
-                    agent_name=agent_name
-                )
-                battle_logger.set_battle_context(context)
-                _battle_context_initialized = True
-                print(f"✅ Seller agent '{agent_name}': Battle context initialized from database")
-                print(f"   battle_id={battle_id}, backend_url={backend_url}")
+                # Check if this is a new battle
+                if battle_id != _last_battle_id:
+                    # Try to get actual agent name from seller_names mapping
+                    agent_name = f"seller{_seller_counter + 1}"  # Default fallback
+                    
+                    if auth_token:
+                        seller_id = _get_seller_id_from_token(auth_token)
+                        if seller_id:
+                            # Retrieve seller names mapping
+                            names_response = requests.get(f"{API_URL}/admin/metadata/seller_names")
+                            if names_response.status_code == 200:
+                                seller_names = names_response.json().get("seller_names", {})
+                                agent_name = seller_names.get(seller_id, agent_name)
+                    
+                    _seller_counter += 1
+                    context = BattleContext(
+                        battle_id=battle_id,
+                        backend_url=backend_url,
+                        agent_name=agent_name
+                    )
+                    battle_logger.set_battle_context(context)
+                    _last_battle_id = battle_id
+                    print(f"✅ Seller agent '{agent_name}': Battle context initialized from database")
+                    print(f"   battle_id={battle_id}, backend_url={backend_url}")
                 return True
             else:
                 print(f"⚠️  Seller agent: Metadata retrieved but missing values - battle_id={battle_id}, backend_url={backend_url}")
@@ -142,7 +167,7 @@ def create_product(
         ... )
     """
     # Lazy initialization - try to get battle context if not already initialized
-    _get_battle_context_from_db()
+    _get_battle_context_from_db(auth_token)
     
     log_tool_request("create_product", product_id=product_id, name=name, price=price, 
                      towel_variant=towel_variant, image_count=len(image_ids), auth_token=auth_token)

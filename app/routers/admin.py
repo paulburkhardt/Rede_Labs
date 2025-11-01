@@ -115,3 +115,40 @@ def get_battle_metadata(
         "battle_id": battle_id_meta.value if battle_id_meta else None,
         "backend_url": backend_url_meta.value if backend_url_meta else None
     }
+
+
+@router.post("/metadata/seller_names")
+def store_seller_names(
+    data: dict,
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Store seller ID to name mapping."""
+    import json
+    seller_names = data.get("seller_names", {})
+    
+    # Store as JSON string in metadata
+    seller_names_meta = db.query(Metadata).filter(Metadata.key == "seller_names").first()
+    if seller_names_meta:
+        seller_names_meta.value = json.dumps(seller_names)
+    else:
+        seller_names_meta = Metadata(key="seller_names", value=json.dumps(seller_names))
+        db.add(seller_names_meta)
+    
+    db.commit()
+    
+    return {"status": "success", "seller_names": seller_names}
+
+
+@router.get("/metadata/seller_names")
+def get_seller_names(
+    db: Session = Depends(get_db),
+) -> dict:
+    """Retrieve seller ID to name mapping. No auth required so agents can read it."""
+    import json
+    seller_names_meta = db.query(Metadata).filter(Metadata.key == "seller_names").first()
+    
+    if seller_names_meta:
+        return {"seller_names": json.loads(seller_names_meta.value)}
+    else:
+        return {"seller_names": {}}
