@@ -13,3 +13,4 @@ class Purchase(Base):
     purchased_at = Column(Integer, nullable=False)
     price_of_purchase = Column(Integer, nullable=False)
     wholesale_cost_at_purchase = Column(Integer, nullable=False)
+    round = Column(Integer, nullable=False)

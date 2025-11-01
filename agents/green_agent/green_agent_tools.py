@@ -117,6 +117,27 @@ def set_marketplace_day(day: int) -> None:
         )
 
 
+def set_marketplace_round(round_number: int) -> None:
+    """
+    Persist the active simulation round in the marketplace backend.
+    """
+    headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+    response = requests.post(
+        f"{api_url}/admin/round",
+        json={"round": round_number},
+        headers=headers,
+    )
+    if response.status_code != 200:
+        raise Exception(
+            f"Failed to update marketplace round to {round_number}: {response.text}"
+        )
+
+    if battle_context:
+        record_battle_event(
+            battle_context, f"Marketplace round set to '{round_number}'"
+        )
+
+
 def clear_database():
     """Clear all data from the database tables by running a script in the correct environment"""
     try:
@@ -279,32 +300,68 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     # Clear database and reload images at the start
     clear_database()
     reload_images()
-    set_marketplace_day(0)
 
-    days: int = 5  # Total days in the battle
+    rounds_env = os.getenv("MARKETPLACE_ROUNDS") or os.getenv("SIMULATION_ROUNDS")
+    days_env = os.getenv("MARKETPLACE_DAYS") or os.getenv("SIMULATION_DAYS")
+
+    try:
+        rounds = int(rounds_env) if rounds_env else 3
+    except (TypeError, ValueError):
+        rounds = 3
+
+    try:
+        days = int(days_env) if days_env else 5
+    except (TypeError, ValueError):
+        days = 5
+
+    if battle_context:
+        record_battle_event(
+            battle_context,
+            f"Configuring battle for {rounds} round(s) with {days} day(s) each",
+        )
+
     try:
         await create_sellers(seller_infos)
         await create_buyer()
         print(sellers)
         print(buyers)
 
-        # Day 1: Create listings
-        change_phase(Phase.SELLER_MANAGEMENT)
-        await create_listings()
-        await create_ranking()
+        for current_round in range(1, rounds + 1):
+            set_marketplace_round(current_round)
+            set_marketplace_day(0)
 
-        change_phase(Phase.BUYER_SHOPPING)
-        await buyers_buy_products()
+            if battle_context:
+                record_battle_event(
+                    battle_context,
+                    f"Round {current_round}/{rounds} started",
+                )
 
-        for current_day in range(1, days):
-            set_marketplace_day(current_day)
-            await update_ranking()
-
+            # Day 0 preparation
             change_phase(Phase.SELLER_MANAGEMENT)
-            await sellers_update_listings()
+            if current_round == 1:
+                await create_listings()
+            else:
+                await sellers_update_listings()
+            await create_ranking()
 
             change_phase(Phase.BUYER_SHOPPING)
             await buyers_buy_products()
+
+            for current_day in range(1, days):
+                set_marketplace_day(current_day)
+                await update_ranking()
+
+                change_phase(Phase.SELLER_MANAGEMENT)
+                await sellers_update_listings()
+
+                change_phase(Phase.BUYER_SHOPPING)
+                await buyers_buy_products()
+
+            if battle_context:
+                record_battle_event(
+                    battle_context,
+                    f"Round {current_round}/{rounds} completed",
+                )
 
     except Exception as e:
         error_msg = f"Error orchestrating battle: {str(e)}"
@@ -518,48 +575,93 @@ async def report_leaderboard():
             record_battle_event(battle_context, error_msg)
             return
 
-        leaderboard_data = response.json()
+        leaderboard_payload = response.json()
 
-        # Step 2: Calculate winner and scores
-        winner = None
-        winner_score = 0
+        rounds_data = leaderboard_payload.get("rounds", [])
+        overall_section = leaderboard_payload.get("overall", {})
+        overall_leaderboard = overall_section.get("leaderboard", [])
+        overall_winners = overall_section.get("winners", [])
+        current_round = leaderboard_payload.get("current_round")
+
+        # Step 2: Log per-round summaries
+        for round_entry in rounds_data:
+            round_number = round_entry.get("round")
+            winners = round_entry.get("winners", [])
+            winners_label = ", ".join(winners) if winners else "no winner"
+            leaderboard_entries = round_entry.get("leaderboard", [])
+            top_entry = leaderboard_entries[0] if leaderboard_entries else None
+
+            summary_parts = [
+                f"Round {round_number}: winners - {winners_label}",
+            ]
+            if top_entry:
+                summary_parts.append(
+                    f"top profit ${top_entry['total_profit_dollars']:.2f} (seller {top_entry['seller_id']})"
+                )
+
+            record_battle_event(battle_context, "; ".join(summary_parts))
+
+        # Step 3: Calculate overall scores
         scores = {}
-
-        for entry in leaderboard_data:
+        for entry in overall_leaderboard:
             seller_id = entry["seller_id"]
-            profit = entry["total_profit_cents"]
+            profit_cents = entry["total_profit_cents"]
             purchase_count = entry["purchase_count"]
+            round_wins = entry.get("round_wins", 0)
 
-            # Score is based on total profit
-            score = profit
             scores[seller_id] = {
-                "profit_cents": profit,
+                "profit_cents": profit_cents,
                 "profit_dollars": entry["total_profit_dollars"],
                 "purchase_count": purchase_count,
-                "score": score,
+                "round_wins": round_wins,
             }
 
             record_battle_event(
                 battle_context,
-                f"Seller {seller_id}: ${entry['total_profit_dollars']:.2f} profit, {purchase_count} purchases",
+                (
+                    f"Overall - Seller {seller_id}: "
+                    f"{round_wins} round win(s), "
+                    f"${entry['total_profit_dollars']:.2f} profit, "
+                    f"{purchase_count} purchases"
+                ),
             )
 
-            if score > winner_score:
-                winner_score = score
-                winner = seller_id
+        if overall_winners:
+            primary_winner_id = overall_winners[0]
+            winner_stats = scores.get(primary_winner_id, {})
+            winner_round_wins = winner_stats.get("round_wins", 0)
+            winner_profit_dollars = winner_stats.get("profit_dollars", 0.0)
 
-        # Step 3: Report final result
+            if len(overall_winners) == 1:
+                summary = (
+                    "Battle completed - Winner: "
+                    f"{primary_winner_id} ({winner_round_wins} round win(s), "
+                    f"${winner_profit_dollars:.2f} profit)"
+                )
+            else:
+                tied_winners = ", ".join(overall_winners)
+                summary = (
+                    "Battle completed - Tie between "
+                    f"{tied_winners} with {winner_round_wins} round win(s) each"
+                )
+        else:
+            primary_winner_id = None
+            winner_round_wins = 0
+            winner_profit_dollars = 0.0
+            summary = "Battle completed - No overall winner determined"
+
+        # Step 4: Report final result
         result_detail = {
-            "leaderboard": leaderboard_data,
+            "current_round": current_round,
+            "rounds": rounds_data,
+            "overall": overall_section,
             "scores": scores,
-            "winner": winner,
-            "winner_profit": winner_score / 100.0 if winner_score else 0,
         }
 
         record_battle_result(
             battle_context,
-            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total profit",
-            winner,
+            summary,
+            primary_winner_id,
             result_detail,
         )
 

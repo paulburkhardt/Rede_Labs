@@ -22,3 +22,26 @@ class TestAdminDayEndpoints:
         response = client.post("/admin/day", json={"day": -1})
         assert response.status_code == 400
         assert "non-negative" in response.json()["detail"]
+
+
+class TestAdminRoundEndpoints:
+    """Ensure the admin round management API works as expected."""
+
+    def test_get_round_defaults_to_one(self, client):
+        response = client.get("/admin/round")
+        assert response.status_code == 200
+        assert response.json() == {"round": 1}
+
+    def test_update_round_persists_value(self, client):
+        update_response = client.post("/admin/round", json={"round": 3})
+        assert update_response.status_code == 200
+        assert update_response.json() == {"round": 3}
+
+        fetch_response = client.get("/admin/round")
+        assert fetch_response.status_code == 200
+        assert fetch_response.json() == {"round": 3}
+
+    def test_update_round_rejects_values_below_one(self, client):
+        response = client.post("/admin/round", json={"round": 0})
+        assert response.status_code == 400
+        assert "positive integer" in response.json()["detail"]
