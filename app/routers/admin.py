@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
+from app.models.metadata import Metadata
 from app.schemas.metadata import (
     PhaseResponse,
     PhaseUpdateRequest,
@@ -66,3 +67,51 @@ def update_day(
     """Update the marketplace day."""
     new_day = set_current_day(db, day_update.day)
     return DayResponse(day=new_day)
+
+
+@router.post("/metadata")
+def store_battle_metadata(
+    metadata: dict,
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Store battle context metadata (battle_id and backend_url) for agents to retrieve."""
+    battle_id = metadata.get("battle_id")
+    backend_url = metadata.get("backend_url")
+    
+    if not battle_id or not backend_url:
+        raise HTTPException(status_code=400, detail="battle_id and backend_url are required")
+    
+    # Store or update battle_id
+    battle_id_meta = db.query(Metadata).filter(Metadata.key == "battle_id").first()
+    if battle_id_meta:
+        battle_id_meta.value = battle_id
+    else:
+        battle_id_meta = Metadata(key="battle_id", value=battle_id)
+        db.add(battle_id_meta)
+    
+    # Store or update backend_url
+    backend_url_meta = db.query(Metadata).filter(Metadata.key == "backend_url").first()
+    if backend_url_meta:
+        backend_url_meta.value = backend_url
+    else:
+        backend_url_meta = Metadata(key="backend_url", value=backend_url)
+        db.add(backend_url_meta)
+    
+    db.commit()
+    
+    return {"status": "success", "battle_id": battle_id, "backend_url": backend_url}
+
+
+@router.get("/metadata")
+def get_battle_metadata(
+    db: Session = Depends(get_db),
+) -> dict:
+    """Retrieve battle context metadata. No auth required so agents can read it."""
+    battle_id_meta = db.query(Metadata).filter(Metadata.key == "battle_id").first()
+    backend_url_meta = db.query(Metadata).filter(Metadata.key == "backend_url").first()
+    
+    return {
+        "battle_id": battle_id_meta.value if battle_id_meta else None,
+        "backend_url": backend_url_meta.value if backend_url_meta else None
+    }

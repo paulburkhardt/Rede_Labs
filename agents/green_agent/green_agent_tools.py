@@ -23,6 +23,16 @@ from enum import Enum
 import subprocess
 import sys
 
+# Add agents directory to sys.path to enable shared battle_logger import
+agents_dir = Path(__file__).parent.parent
+if str(agents_dir) not in sys.path:
+    sys.path.insert(0, str(agents_dir))
+
+# Import battle logger - this will be cached by Python's import system
+# ensuring all modules share the same instance
+import battle_logger
+set_battle_context = battle_logger.set_battle_context
+
 
 # Global state to store battle context
 battle_context = None
@@ -38,6 +48,7 @@ class Seller(NamedTuple):
     id: str
     url: str
     token: str
+    name: str = ""  # Agent name from opponent_infos
 
 
 class Buyer(NamedTuple):
@@ -121,6 +132,8 @@ def clear_database():
     """Clear all data from the database tables by running a script in the correct environment"""
     try:
         print("🗑️  Clearing database...")
+        if battle_context:
+            record_battle_event(battle_context, "Clearing database...")
         
         # Create a simple Python script to clear the database
         project_root = Path(__file__).parent.parent.parent
@@ -152,13 +165,22 @@ print("Tables cleared and recreated")
         )
         
         if result.returncode == 0:
-            print("✅ Database cleared and tables recreated")
+            message = "✅ Database cleared and tables recreated"
+            print(message)
+            if battle_context:
+                record_battle_event(battle_context, "Database cleared and tables recreated")
         else:
-            print(f"⚠️  Warning: Failed to clear database (code {result.returncode})")
+            warning = f"⚠️  Warning: Failed to clear database (code {result.returncode})"
+            print(warning)
             print(f"   stderr: {result.stderr}")
+            if battle_context:
+                record_battle_event(battle_context, f"Failed to clear database (code {result.returncode})")
             
     except Exception as e:
-        print(f"⚠️  Warning: Failed to clear database: {e}")
+        error_msg = f"⚠️  Warning: Failed to clear database: {e}"
+        print(error_msg)
+        if battle_context:
+            record_battle_event(battle_context, f"Failed to clear database: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -167,6 +189,8 @@ def reload_images():
     """Reload images from the images directory using the creation script"""
     try:
         print("📸 Reloading images from images directory...")
+        if battle_context:
+            record_battle_event(battle_context, "Reloading images from database...")
         
         # Get the path to the images directory and script
         project_root = Path(__file__).parent.parent.parent
@@ -177,7 +201,10 @@ def reload_images():
         print(f"   Working directory: {images_dir}")
         
         if not script_path.exists():
-            print(f"⚠️  Warning: Image creation script not found at {script_path}")
+            warning = f"⚠️  Warning: Image creation script not found at {script_path}"
+            print(warning)
+            if battle_context:
+                record_battle_event(battle_context, "Image creation script not found")
             return
         
         # Run the script to reload images using uv run to ensure correct environment
@@ -193,20 +220,29 @@ def reload_images():
         )
         
         if result.returncode == 0:
-            print("✅ Images reloaded successfully")
+            message = "✅ Images reloaded successfully"
+            print(message)
             # Print last few lines of output to confirm
             output_lines = result.stdout.strip().split('\n')
             if len(output_lines) > 5:
                 print("   Last lines of output:")
                 for line in output_lines[-5:]:
                     print(f"   {line}")
+            if battle_context:
+                record_battle_event(battle_context, "Images reloaded successfully")
         else:
-            print(f"⚠️  Warning: Image reload script failed with code {result.returncode}")
+            warning = f"⚠️  Warning: Image reload script failed with code {result.returncode}"
+            print(warning)
             print(f"   stderr: {result.stderr}")
             print(f"   stdout: {result.stdout}")
+            if battle_context:
+                record_battle_event(battle_context, f"Image reload failed (code {result.returncode})")
             
     except Exception as e:
-        print(f"⚠️  Warning: Failed to reload images: {e}")
+        error_msg = f"⚠️  Warning: Failed to reload images: {e}"
+        print(error_msg)
+        if battle_context:
+            record_battle_event(battle_context, f"Failed to reload images: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -247,9 +283,13 @@ async def handle_incoming_message(message: str) -> str:
                 backend_url=green_battle_context.get("backend_url"),
                 agent_name=green_battle_context.get("agent_name"),
             )
+            
+            # Set the battle context globally so shared tools can access it
+            set_battle_context(battle_context)
 
             # Now orchestrate the battle automatically
-            return await orchestrate_battle(battle_id, seller_infos)
+            # Note: Battle context will be stored in metadata AFTER database clear
+            return await orchestrate_battle(battle_id, seller_infos, green_battle_context)
 
         return f"Received message of type: {message_data.get('type', 'unknown')}"
 
@@ -257,13 +297,14 @@ async def handle_incoming_message(message: str) -> str:
         return f"Error processing message: {str(e)}"
 
 
-async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
+async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_context: dict) -> str:
     """
     Orchestrate the dummy battle: send questions, collect responses, evaluate, and report.
 
     Args:
         battle_id: The battle ID
         seller_infos: List of seller info dicts with 'agent_url' and 'name'
+        green_battle_context: Battle context data to store in metadata
 
     Returns:
         str: Battle completion summary
@@ -280,6 +321,29 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
     clear_database()
     reload_images()
     set_marketplace_day(0)
+    
+    # Store battle context in database metadata AFTER database clear
+    # so buyer/seller agents can retrieve it
+    try:
+        headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+        response = requests.post(
+            f"{api_url}/admin/metadata",
+            json={
+                "battle_id": green_battle_context.get("battle_id"),
+                "backend_url": green_battle_context.get("backend_url")
+            },
+            headers=headers
+        )
+        if response.status_code == 200:
+            print("✅ Battle context stored in database metadata")
+            print(f"   Stored: battle_id={green_battle_context.get('battle_id')}, backend_url={green_battle_context.get('backend_url')}")
+        else:
+            print(f"⚠️  Warning: Failed to store battle context - Status {response.status_code}")
+            print(f"   Response: {response.text}")
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to store battle context in metadata: {e}")
+        import traceback
+        traceback.print_exc()
 
     days: int = 5  # Total days in the battle
     try:
@@ -321,25 +385,31 @@ async def orchestrate_battle(battle_id: str, seller_infos: list) -> str:
             print(warning)
 
     await report_leaderboard()
+    
+
 
 
 async def create_sellers(seller_infos: list):
     for seller_info in seller_infos:
         # todo: add super admin auth token
         print("🥥 Creating seller")
-        print(api_url + "/createSeller"),
         response = requests.post(
             api_url + "/createSeller",
             headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
-        print("🥥 Created seller")
         if response.status_code != 200:
             raise Exception(f"Failed to create seller: {response.text}")
 
         json = response.json()
         id = json.get("id")
         token = json.get("auth_token")
-        sellers.append(Seller(id=id, url=seller_info.get("agent_url"), token=token))
+        agent_name = seller_info.get("name", "Unknown Seller")
+        sellers.append(Seller(id=id, url=seller_info.get("agent_url"), token=token, name=agent_name))
+        
+        message = f"🥥 Created seller {id} ({agent_name})"
+        print(message)
+        if battle_context:
+            record_battle_event(battle_context, f"Created seller {id} ({agent_name})")
 
 
 async def create_buyer():
@@ -382,9 +452,15 @@ async def create_buyer():
         # Store buyer with URL constructed from agent configuration
         # todo: is that a problem that the buyer has to run local (because of the http://)?
         url = f"http://{agent_host}:{agent_port}"
+        buyer_id = buyer_data.get("id")
         buyers.append(
-            Buyer(id=buyer_data.get("id"), url=url, token=buyer_data.get("auth_token"))
+            Buyer(id=buyer_id, url=url, token=buyer_data.get("auth_token"))
         )
+        
+        message = f"🛒 Created buyer {buyer_id}"
+        print(message)
+        if battle_context:
+            record_battle_event(battle_context, f"Created buyer {buyer_id}")
 
 
 async def create_participants(no_participants: int, route: str):
@@ -439,8 +515,7 @@ Response format:
             # Log other errors but continue with other buyers
             error_msg = f"Error communicating with seller {seller.id}: {str(e)}"
             print(error_msg)
-            if battle_context:
-                record_battle_event(battle_context, error_msg)
+            
 
 
 async def create_ranking():
@@ -450,24 +525,39 @@ async def create_ranking():
         raise Exception(f"Failed to initialize rankings: {response.text}")
     
     result = response.json()
-    print(f"✅ {result['message']}")
+    message = f"✅ {result['message']}"
+    print(message)
+    if battle_context:
+        record_battle_event(battle_context, result['message'])
 
 
 async def update_ranking():
     # Update rankings based on sales performance via API
     response = requests.post(f"{api_url}/rankings/update-by-sales")
     if response.status_code != 200:
-        print(f"Warning: Failed to update rankings: {response.text}")
+        warning = f"Warning: Failed to update rankings: {response.text}"
+        print(warning)
+        if battle_context:
+            record_battle_event(battle_context, warning)
         return
     
     result = response.json()
-    print(f"✅ {result['message']}")
+    message = f"✅ {result['message']}"
+    print(message)
+    if battle_context:
+        record_battle_event(battle_context, result['message'])
     
     # Log top products for visibility
     if "top_products" in result:
         print("📊 Top 5 products by sales:")
+        top_products_summary = []
         for product in result["top_products"]:
-            print(f"   Rank {product['ranking']}: {product['product_name']} ({product['sales_count']} sales)")
+            product_line = f"   Rank {product['ranking']}: {product['product_name']} ({product['sales_count']} sales)"
+            print(product_line)
+            top_products_summary.append(f"#{product['ranking']} {product['product_name']} ({product['sales_count']} sales)")
+        
+        if battle_context and top_products_summary:
+            record_battle_event(battle_context, f"📊 Top products: {', '.join(top_products_summary[:3])}")
 
 
 async def buyers_buy_products():
@@ -506,8 +596,7 @@ Response format:
             # Log other errors but continue with other buyers
             error_msg = f"Error communicating with buyer {buyer.id}: {str(e)}"
             print(error_msg)
-            if battle_context:
-                record_battle_event(battle_context, error_msg)
+           
 
 
 async def sellers_update_listings():
@@ -543,14 +632,13 @@ Response format:
             # Log other errors but continue with other sellers
             error_msg = f"Error communicating with seller {seller.id}: {str(e)}"
             print(error_msg)
-            if battle_context:
-                record_battle_event(battle_context, error_msg)
+          
 
 
 async def report_leaderboard():
     """Queries the purchase history and reports a leaderboard (total profit,
     etc.) to AgentBeats."""
-    global battle_context
+    global battle_context, sellers
 
     if not battle_context:
         print("Warning: Battle context not initialized")
@@ -568,46 +656,48 @@ async def report_leaderboard():
 
         leaderboard_data = response.json()
 
+        # Create a mapping of seller_id to seller name
+        seller_names = {seller.id: seller.name for seller in sellers}
+
         # Step 2: Calculate winner and scores
-        winner = None
+        winner_id = None
+        winner_name = None
         winner_score = 0
         scores = {}
 
         for entry in leaderboard_data:
             seller_id = entry["seller_id"]
+            seller_name = seller_names.get(seller_id, seller_id)
             profit = entry["total_profit_cents"]
             purchase_count = entry["purchase_count"]
 
             # Score is based on total profit
             score = profit
-            scores[seller_id] = {
-                "profit_cents": profit,
-                "profit_dollars": entry["total_profit_dollars"],
-                "purchase_count": purchase_count,
-                "score": score,
-            }
+            
 
             record_battle_event(
                 battle_context,
-                f"Seller {seller_id}: ${entry['total_profit_dollars']:.2f} profit, {purchase_count} purchases",
+                f"Seller {seller_name} ({seller_id}): ${entry['total_profit_dollars']:.2f} profit, {purchase_count} purchases",
             )
 
             if score > winner_score:
                 winner_score = score
-                winner = seller_id
+                winner_id = seller_id
+                winner_name = seller_name
 
         # Step 3: Report final result
         result_detail = {
             "leaderboard": leaderboard_data,
-            "scores": scores,
-            "winner": winner,
+            
+            "winner": winner_id,
+            "winner_name": winner_name,
             "winner_profit": winner_score / 100.0 if winner_score else 0,
         }
 
         record_battle_result(
             battle_context,
-            f"Battle completed - Winner: {winner} with ${winner_score / 100.0:.2f} total profit",
-            winner,
+            f"Battle completed - Winner: {winner_name} with ${winner_score / 100.0:.2f} total profit",
+            winner_name,
             result_detail,
         )
 
