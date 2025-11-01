@@ -41,13 +41,25 @@ Rede_Labs/
 ## Prerequisites
 
 - Docker and Docker Compose
-- (Optional) Python 3.11+ and [uv](https://github.com/astral-sh/uv) for local development
+- Python 3.11+ and [uv](https://github.com/astral-sh/uv) for local development
 
 ## Setup Instructions
 
-### Option 1: Docker (Recommended)
+#### 1. Install dependencies
 
-#### 1. Start All Services
+```bash
+uv sync
+```
+
+#### 2. Create .env file
+
+Copy the example environment file and adjust if needed:
+
+```bash
+cp .env.example .env
+```
+
+#### 3. Start Database & Backend
 
 ```bash
 docker-compose up -d
@@ -63,57 +75,90 @@ This will start:
   - FastAPI application
   - Port: `8000`
   - Auto-reloads on code changes
+  - Interactive Docs: http://localhost:8000/docs
+  - ReDoc: http://localhost:8000/redoc
 
-#### 2. Run Database Migrations
+#### 4. Run Database Migrations
 
 ```bash
+# Run migrations
 docker-compose exec backend alembic upgrade head
+
+# Create image descriptions
+uv run images/create_image_descriptions.py
 ```
 
-### Option 2: Local Development
+#### 5. Install AgentBeats
 
-#### 1. Install uv
+1. Clone repository: `git clone https://github.com/agentbeats/agentbeats.git`
+2. Navigate to the directory: `cd agentbeats`
+3. Create a virtual environment: `python3 -m venv venv`
+4. Source the virtual environment: `source venv/bin/activate`
+5. Install AgentBeats: `pip install -e .`
+6. Add virtual environment to PATH:
+```
+BIN_PATH=$(pwd)/venv/bin
+echo "export PATH=$BIN_PATH:$PATH" >> ~/.zshrc
+source ~/.zshrc
+```
+(The 6th step is necessary because our scripts require the `agentbeats` CLI to be available in the PATH)
+
+#### 6. Start Buyer and Seller Agents (White Agents)
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 10
 ```
 
-#### 2. Install Dependencies
+This will start 10 buyer and 10 seller agents. The main task of other teams will be to implement their own seller agent. However, they can use our basic seller agent as reference.
 
+In `tools/scenario.toml` are the ports and hosts of the agents. Expand the following section to see the default ports and hosts.
+
+<details>
+<summary>Default ports and hosts</summary>
+
+### 🧩 Green Agent (Orchestrator)
+- **Agent:** `http://0.0.0.0:9110`  
+- **Launcher:** `http://0.0.0.0:9115`  
+- **Tools:** `/agents/green_agent/green_agent_tools.py`
+
+### 🛒 Buyer Agents
+
+| Buyer | Personality | Agent Port | Launcher Port | Tools |
+|--------|--------------|-------------|----------------|--------|
+| Buyer 1 | price_conscious | `9200` | `9300` | `/agents/buyer/shared_tools.py` |
+| Buyer 2 | price_conscious | `9201` | `9301` | `/agents/buyer/shared_tools.py` |
+| Buyer 3 | quality_seeker | `9202` | `9302` | `/agents/buyer/shared_tools.py` |
+| Buyer 4 | confused_overchoice | `9203` | `9303` | `/agents/buyer/shared_tools.py` |
+| Buyer 5 | confused_overchoice | `9204` | `9304` | `/agents/buyer/shared_tools.py` |
+| Buyer 6 | hedonistic_shopper | `9205` | `9305` | `/agents/buyer/shared_tools.py` |
+| Buyer 7 | hedonistic_shopper | `9206` | `9306` | `/agents/buyer/shared_tools.py` |
+| Buyer 8 | brand_conscious | `9207` | `9307` | `/agents/buyer/shared_tools.py` |
+| Buyer 9 | brand_conscious | `9208` | `9308` | `/agents/buyer/shared_tools.py` |
+| Buyer 10 | brand_conscious | `9209` | `9309` | `/agents/buyer/shared_tools.py` |
+
+---
+
+### 💰 Seller Agents
+
+| Seller | Strategy | Agent Port | Launcher Port | Tools |
+|---------|------------|-------------|----------------|--------|
+| Seller 1 | budget_king | `10000` | `10100` | `/agents/seller/shared_tools.py` |
+| Seller 2 | budget_king | `10001` | `10101` | `/agents/seller/shared_tools.py` |
+| Seller 3 | budget_king | `10002` | `10102` | `/agents/seller/shared_tools.py` |
+| Seller 4 | dynamic_optimizer | `10003` | `10103` | `/agents/seller/shared_tools.py` |
+| Seller 5 | dynamic_optimizer | `10004` | `10104` | `/agents/seller/shared_tools.py` |
+| Seller 6 | dynamic_optimizer | `10005` | `10105` | `/agents/seller/shared_tools.py` |
+| Seller 7 | premium_player | `10006` | `10106` | `/agents/seller/shared_tools.py` |
+| Seller 8 | premium_player | `10007` | `10107` | `/agents/seller/shared_tools.py` |
+| Seller 9 | premium_player | `10008` | `10108` | `/agents/seller/shared_tools.py` |
+
+</details>
+
+\
+You can kill the agents with:
 ```bash
-uv sync
+uv run tools/kill_agents.py
 ```
-
-#### 3. Start PostgreSQL Only
-
-```bash
-docker-compose up -d postgres
-```
-
-#### 4. Configure Environment
-
-Copy the example environment file and adjust if needed:
-
-```bash
-cp .env.example .env
-```
-
-#### 5. Run Database Migrations
-
-```bash
-uv run alembic upgrade head
-```
-
-#### 6. Start the Development Server
-
-```bash
-uv run python run.py
-```
-
-The API will be available at:
-- **API**: http://localhost:8000
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
 
 ## API Endpoints
 
@@ -215,49 +260,6 @@ uv run pytest tests/ -v
 ```bash
 uv run pytest tests/test_products.py -v
 ```
-
-### Test Coverage
-
-**48 integration tests** covering:
-- ✅ Seller creation and authentication
-- ✅ Buyer creation and authentication
-- ✅ Product CRUD operations with authorization
-- ✅ Search functionality (case-insensitive, partial matching, ranking)
-- ✅ Purchase workflows with buyer authentication
-- ✅ Security (token isolation, authorization checks)
-- ✅ Data consistency across operations
-- ✅ Edge cases and error handling
-
-Each test:
-1. Clears the database completely
-2. Seeds fresh test data
-3. Runs in isolation
-4. Validates complete workflows
-
-See `IMPLEMENTATION_COMPLETE.md` for detailed test documentation.
-
-## Implementation Status
-
-✅ **All endpoints fully implemented with authentication!**
-
-- **POST /createSeller** - Creates seller with auth token
-- **POST /createBuyer** - Creates buyer with auth token
-- **POST /product/{id}** - Create product (requires org auth)
-- **PATCH /product/{id}** - Update product (requires org auth, ownership check)
-- **GET /product/{id}** - Get product details (public)
-- **GET /search?q={query}** - Search products (public, ranked results)
-- **POST /buy/{productId}** - Purchase product (requires buyer auth)
-
-### Authentication
-
-- Sellers receive an `auth_token` upon creation
-- Buyers receive an `auth_token` upon creation
-- Product create/update requires seller token in `Authorization` header
-- Purchases require buyer token in `Authorization` header
-- Sellers can only update their own products
-- Tokens are securely generated using `secrets.token_urlsafe(32)`
-
-## Utilities
 
 ### Image Description Generator
 
