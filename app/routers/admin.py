@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
+from app.models.metadata import Metadata
 from app.schemas.metadata import (
     PhaseResponse,
     PhaseUpdateRequest,
@@ -90,3 +91,87 @@ def update_round(
     """Update the simulation round."""
     new_round = set_current_round(db, round_update.round)
     return RoundResponse(round=new_round)
+
+@router.post("/metadata")
+def store_battle_metadata(
+    metadata: dict,
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Store battle context metadata (battle_id and backend_url) for agents to retrieve."""
+    battle_id = metadata.get("battle_id")
+    backend_url = metadata.get("backend_url")
+    
+    if not battle_id or not backend_url:
+        raise HTTPException(status_code=400, detail="battle_id and backend_url are required")
+    
+    # Store or update battle_id
+    battle_id_meta = db.query(Metadata).filter(Metadata.key == "battle_id").first()
+    if battle_id_meta:
+        battle_id_meta.value = battle_id
+    else:
+        battle_id_meta = Metadata(key="battle_id", value=battle_id)
+        db.add(battle_id_meta)
+    
+    # Store or update backend_url
+    backend_url_meta = db.query(Metadata).filter(Metadata.key == "backend_url").first()
+    if backend_url_meta:
+        backend_url_meta.value = backend_url
+    else:
+        backend_url_meta = Metadata(key="backend_url", value=backend_url)
+        db.add(backend_url_meta)
+    
+    db.commit()
+    
+    return {"status": "success", "battle_id": battle_id, "backend_url": backend_url}
+
+
+@router.get("/metadata")
+def get_battle_metadata(
+    db: Session = Depends(get_db),
+) -> dict:
+    """Retrieve battle context metadata. No auth required so agents can read it."""
+    battle_id_meta = db.query(Metadata).filter(Metadata.key == "battle_id").first()
+    backend_url_meta = db.query(Metadata).filter(Metadata.key == "backend_url").first()
+    
+    return {
+        "battle_id": battle_id_meta.value if battle_id_meta else None,
+        "backend_url": backend_url_meta.value if backend_url_meta else None
+    }
+
+
+@router.post("/metadata/seller_names")
+def store_seller_names(
+    data: dict,
+    _: None = Depends(ensure_admin_key),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Store seller ID to name mapping."""
+    import json
+    seller_names = data.get("seller_names", {})
+    
+    # Store as JSON string in metadata
+    seller_names_meta = db.query(Metadata).filter(Metadata.key == "seller_names").first()
+    if seller_names_meta:
+        seller_names_meta.value = json.dumps(seller_names)
+    else:
+        seller_names_meta = Metadata(key="seller_names", value=json.dumps(seller_names))
+        db.add(seller_names_meta)
+    
+    db.commit()
+    
+    return {"status": "success", "seller_names": seller_names}
+
+
+@router.get("/metadata/seller_names")
+def get_seller_names(
+    db: Session = Depends(get_db),
+) -> dict:
+    """Retrieve seller ID to name mapping. No auth required so agents can read it."""
+    import json
+    seller_names_meta = db.query(Metadata).filter(Metadata.key == "seller_names").first()
+    
+    if seller_names_meta:
+        return {"seller_names": json.loads(seller_names_meta.value)}
+    else:
+        return {"seller_names": {}}
