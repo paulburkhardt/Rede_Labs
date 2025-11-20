@@ -1,6 +1,6 @@
 # This script deploys our backend to Google Cloud Run.
 
-REGION=${REGION:-"us-central1"}
+REGION=${REGION:-"us-west1"}
 PROJECT_ID=${PROJECT_ID:-"rede-labs"}
 # Need to be exported for sudo to work
 export IMAGE="gcr.io/$PROJECT_ID/marketplace-backend:latest"
