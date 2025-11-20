@@ -17,3 +17,11 @@ class DayResponse(BaseModel):
 
 class DayUpdateRequest(BaseModel):
     day: int
+
+
+class RoundResponse(BaseModel):
+    round: int
+
+
+class RoundUpdateRequest(BaseModel):
+    round: int

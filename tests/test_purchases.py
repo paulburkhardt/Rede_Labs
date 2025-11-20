@@ -25,6 +25,7 @@ class TestPurchaseCreation:
         assert "product_id" in data
         assert data["product_id"] == sample_product['id']
         assert len(data["id"]) > 0
+        assert "round" in data
 
     def test_purchase_tracks_current_day(
         self,
@@ -33,9 +34,11 @@ class TestPurchaseCreation:
         sample_buyer,
         set_phase,
         set_day,
+        set_round,
     ):
         """Ensure purchases record the current simulated day."""
         set_day(2)
+        set_round(3)
         set_phase(Phase.BUYER_SHOPPING)
         purchase_response = client.post(
             f"/buy/{sample_product['id']}",
@@ -52,6 +55,62 @@ class TestPurchaseCreation:
         stats = stats_response.json()
         assert stats["purchases"]
         assert stats["purchases"][0]["purchased_at"] == 2
+        assert stats["purchases"][0]["round"] == 3
+    
+    def test_purchase_tracks_current_round(
+        self,
+        client,
+        sample_product,
+        sample_buyer,
+        set_phase,
+        set_round,
+    ):
+        """Ensure purchases record the current round."""
+        set_round(2)
+        set_phase(Phase.BUYER_SHOPPING)
+        response = client.post(
+            f"/buy/{sample_product['id']}",
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["round"] == 2
+
+    def test_sales_stats_filter_by_round(
+        self,
+        client,
+        sample_product,
+        sample_buyer,
+        set_phase,
+        set_round,
+    ):
+        """Sales stats should only include purchases from the active round."""
+        seller_token = sample_product["seller"]["auth_token"]
+
+        set_phase(Phase.BUYER_SHOPPING)
+        client.post(
+            f"/buy/{sample_product['id']}",
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+
+        set_round(2)
+        set_phase(Phase.BUYER_SHOPPING)
+        client.post(
+            f"/buy/{sample_product['id']}",
+            headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
+        )
+
+        stats_response = client.get(
+            "/getSalesStats",
+            headers={"Authorization": f"Bearer {seller_token}"}
+        )
+        assert stats_response.status_code == 200
+        stats = stats_response.json()
+
+        assert stats["total_sales"] == 1
+        assert len(stats["purchases"]) == 1
+        assert stats["purchases"][0]["round"] == 2
     
     def test_purchase_without_auth(self, client, sample_product, set_phase):
         """Test that purchase fails without authentication"""

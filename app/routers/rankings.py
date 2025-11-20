@@ -8,6 +8,7 @@ from sqlalchemy import func
 from app.database import get_db
 from app.models.product import Product
 from app.models.purchase import Purchase
+from app.services.round_manager import get_current_round
 
 router = APIRouter(prefix="/rankings", tags=["rankings"])
 
@@ -54,11 +55,14 @@ def update_rankings_by_sales(db: Session = Depends(get_db)):
         return {"message": "No products to rank", "updated_count": 0}
     
     # Count purchases per product
+    current_round = get_current_round(db)
+
     purchase_counts = (
         db.query(
             Purchase.product_id,
             func.count(Purchase.id).label("purchase_count")
         )
+        .filter(Purchase.round == current_round)
         .group_by(Purchase.product_id)
         .all()
     )
