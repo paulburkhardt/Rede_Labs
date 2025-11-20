@@ -3,7 +3,7 @@ name = "marketplace-api"
 version = "0.1.0"
 description = "Marketplace API with FastAPI and PostgreSQL"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
@@ -14,6 +14,7 @@ dependencies = [
     "alembic>=1.13.0",
     "openai>=1.0.0",
     "toml>=0.10.2",
+    "earthshaker>=0.2.0",
 ]
 
 [project.optional-dependencies]
