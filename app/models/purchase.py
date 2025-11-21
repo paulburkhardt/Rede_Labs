@@ -8,6 +8,7 @@ class Purchase(Base):
     __tablename__ = "purchases"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    battle_id = Column(String, nullable=False, index=True)
     product_id = Column(String, ForeignKey("products.id"), nullable=False)
     buyer_id = Column(String, ForeignKey("buyers.id"), nullable=False)
     purchased_at = Column(Integer, nullable=False)

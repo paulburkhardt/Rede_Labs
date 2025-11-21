@@ -8,6 +8,7 @@ class PhaseResponse(BaseModel):
 
 
 class PhaseUpdateRequest(BaseModel):
+    battle_id: str
     phase: Phase
 
 
@@ -16,6 +17,7 @@ class DayResponse(BaseModel):
 
 
 class DayUpdateRequest(BaseModel):
+    battle_id: str
     day: int
 
 
@@ -24,4 +26,6 @@ class RoundResponse(BaseModel):
 
 
 class RoundUpdateRequest(BaseModel):
+    battle_id: str
     round: int
+

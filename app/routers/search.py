@@ -12,18 +12,19 @@ router = APIRouter(prefix="", tags=["search"])
 
 @router.get("/search", response_model=List[ProductSearchResult])
 def search_products(
+    battle_id: str = Query(..., description="Battle ID to search within"),
     q: str = Query("", description="Product name to search for (empty returns all products)"),
     seller_id: str = Query(None, description="Filter by seller ID"),
     db: Session = Depends(get_db)
 ):
     """
-    Search for products by name.
+    Search for products by name within a specific battle.
     Shared search endpoint returning ranked product lists.
     Products are ranked by bestseller status first, then by name match.
     If q is empty, returns all products.
     """
-    # Start with base query
-    query = db.query(Product)
+    # Start with base query filtered by battle_id
+    query = db.query(Product).filter(Product.battle_id == battle_id)
     
     # Apply seller filter if provided
     if seller_id:

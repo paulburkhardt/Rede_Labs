@@ -23,9 +23,12 @@ PHASE_KEY = "current_phase"
 DEFAULT_PHASE = Phase.SELLER_MANAGEMENT
 
 
-def get_current_phase(db: Session) -> Phase:
-    """Return the currently active marketplace phase."""
-    record = db.query(Metadata).filter(Metadata.key == PHASE_KEY).first()
+def get_current_phase(db: Session, battle_id: str) -> Phase:
+    """Return the currently active marketplace phase for a specific battle."""
+    record = db.query(Metadata).filter(
+        Metadata.key == PHASE_KEY,
+        Metadata.battle_id == battle_id
+    ).first()
     if not record:
         return DEFAULT_PHASE
 
@@ -36,12 +39,15 @@ def get_current_phase(db: Session) -> Phase:
         return DEFAULT_PHASE
 
 
-def set_current_phase(db: Session, phase: Phase) -> Phase:
-    """Persist the given phase as the current marketplace phase."""
-    record = db.query(Metadata).filter(Metadata.key == PHASE_KEY).first()
+def set_current_phase(db: Session, battle_id: str, phase: Phase) -> Phase:
+    """Persist the given phase as the current marketplace phase for a specific battle."""
+    record = db.query(Metadata).filter(
+        Metadata.key == PHASE_KEY,
+        Metadata.battle_id == battle_id
+    ).first()
 
     if record is None:
-        record = Metadata(key=PHASE_KEY, value=phase.value)
+        record = Metadata(key=PHASE_KEY, battle_id=battle_id, value=phase.value)
         db.add(record)
     else:
         record.value = phase.value
@@ -51,14 +57,14 @@ def set_current_phase(db: Session, phase: Phase) -> Phase:
     return phase
 
 
-def ensure_phase(db: Session, allowed_phases: Iterable[Phase]) -> Phase:
+def ensure_phase(db: Session, battle_id: str, allowed_phases: Iterable[Phase]) -> Phase:
     """
-    Ensure the active phase is one of the allowed phases.
+    Ensure the active phase is one of the allowed phases for a specific battle.
 
     Raises:
         HTTPException: If the current phase is not permitted.
     """
-    current_phase = get_current_phase(db)
+    current_phase = get_current_phase(db, battle_id)
 
     allowed_set = set(allowed_phases)
     if current_phase == Phase.OPEN or current_phase in allowed_set:

@@ -29,22 +29,37 @@ def create_purchase(
     # Extract token from Authorization header
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
     
+    # Decode token to get buyer_id and battle_id
+    decoded = Buyer.decode_auth_token(token)
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid authentication token format")
+    
+    buyer_id, battle_id = decoded
+    
     # Verify buyer exists and token is valid
-    buyer = db.query(Buyer).filter(Buyer.auth_token == token).first()
+    buyer = db.query(Buyer).filter(
+        Buyer.id == buyer_id,
+        Buyer.battle_id == battle_id,
+        Buyer.auth_token == token
+    ).first()
     if not buyer:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
-    # Verify product exists
-    product = db.query(Product).filter(Product.id == product_id).first()
+    # Verify product exists in this battle
+    product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.battle_id == battle_id
+    ).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    ensure_phase(db, [Phase.BUYER_SHOPPING])
-    current_day = get_current_day(db)
-    current_round = get_current_round(db)
+    ensure_phase(db, battle_id, [Phase.BUYER_SHOPPING])
+    current_day = get_current_day(db, battle_id)
+    current_round = get_current_round(db, battle_id)
 
     # Create purchase record
     db_purchase = Purchase(
+        battle_id=battle_id,
         product_id=product_id,
         buyer_id=buyer.id,
         purchased_at=current_day,
@@ -66,26 +81,37 @@ def create_purchase(
 
 
 @router.get("/stats/by-seller")
-def get_purchases_per_seller(db: Session = Depends(get_db)):
+def get_purchases_per_seller(
+    battle_id: str,
+    db: Session = Depends(get_db)
+):
     """
-    Get the number of purchases per seller.
+    Get the number of purchases per seller for a specific battle.
     Returns a list of sellers with their purchase counts.
     """
     from app.models.seller import Seller
     
-    current_round = get_current_round(db)
+    current_round = get_current_round(db, battle_id)
 
-    # Query to count purchases per seller
+    # Query to count purchases per seller in this battle
     results = (
         db.query(
             Seller.id,
             func.count(Purchase.id).label("purchase_count")
         )
-        .outerjoin(Product, Product.seller_id == Seller.id)
+        .filter(Seller.battle_id == battle_id)
+        .outerjoin(
+            Product,
+            and_(
+                Product.seller_id == Seller.id,
+                Product.battle_id == battle_id
+            )
+        )
         .outerjoin(
             Purchase,
             and_(
                 Purchase.product_id == Product.id,
+                Purchase.battle_id == battle_id,
                 Purchase.round == current_round,
             ),
         )
@@ -103,14 +129,17 @@ def get_purchases_per_seller(db: Session = Depends(get_db)):
 
 
 @router.get("/stats/leaderboard")
-def get_leaderboard(db: Session = Depends(get_db)):
+def get_leaderboard(
+    battle_id: str,
+    db: Session = Depends(get_db)
+):
     """
-    Provide per-round breakdowns and overall rankings for seller performance.
+    Provide per-round breakdowns and overall rankings for seller performance in a specific battle.
     """
     from app.models.seller import Seller
 
-    current_round = get_current_round(db)
-    sellers = db.query(Seller).all()
+    current_round = get_current_round(db, battle_id)
+    sellers = db.query(Seller).filter(Seller.battle_id == battle_id).all()
     seller_ids = [seller.id for seller in sellers]
 
     if not seller_ids:
@@ -133,6 +162,10 @@ def get_leaderboard(db: Session = Depends(get_db)):
             ).label("total_profit_cents"),
         )
         .join(Product, Purchase.product_id == Product.id)
+        .filter(
+            Purchase.battle_id == battle_id,
+            Product.battle_id == battle_id
+        )
         .group_by(Product.seller_id, Purchase.round)
         .all()
     )

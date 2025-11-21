@@ -29,6 +29,25 @@ class ProductCreate(BaseModel):
     image_ids: List[str]  # List of image IDs from the database (REQUIRED - at least one image)
     towel_variant: Optional[TowelVariant] = None  # Towel variant (budget, mid_tier, premium) - Optional for backward compatibility
     
+    @field_validator('towel_variant', mode='before')
+    @classmethod
+    def normalize_towel_variant(cls, v):
+        """Normalize towel_variant to handle uppercase enum names"""
+        if v is None:
+            return v
+        if isinstance(v, str):
+            # Convert uppercase enum names to lowercase values
+            v_upper = v.upper()
+            if v_upper == 'BUDGET':
+                return 'budget'
+            elif v_upper == 'MID_TIER':
+                return 'mid_tier'
+            elif v_upper == 'PREMIUM':
+                return 'premium'
+            # If already lowercase, return as-is
+            return v.lower()
+        return v
+    
     @field_validator('image_ids')
     @classmethod
     def validate_image_ids(cls, v):

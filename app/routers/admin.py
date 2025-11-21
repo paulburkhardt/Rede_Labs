@@ -32,11 +32,12 @@ def ensure_admin_key(
 
 @router.get("/phase", response_model=PhaseResponse)
 def get_phase(
+    battle_id: str,
     _: None = Depends(ensure_admin_key),
     db: Session = Depends(get_db),
 ) -> PhaseResponse:
-    """Return the currently active marketplace phase."""
-    current_phase = get_current_phase(db)
+    """Return the currently active marketplace phase for a specific battle."""
+    current_phase = get_current_phase(db, battle_id)
     return PhaseResponse(phase=current_phase)
 
 
@@ -46,18 +47,19 @@ def update_phase(
     _: None = Depends(ensure_admin_key),
     db: Session = Depends(get_db),
 ) -> PhaseResponse:
-    """Update the marketplace phase."""
-    new_phase = set_current_phase(db, phase_update.phase)
+    """Update the marketplace phase for a specific battle."""
+    new_phase = set_current_phase(db, phase_update.battle_id, phase_update.phase)
     return PhaseResponse(phase=new_phase)
 
 
 @router.get("/day", response_model=DayResponse)
 def get_day(
+    battle_id: str,
     _: None = Depends(ensure_admin_key),
     db: Session = Depends(get_db),
 ) -> DayResponse:
-    """Return the currently configured marketplace day."""
-    current_day = get_current_day(db)
+    """Return the currently configured marketplace day for a specific battle."""
+    current_day = get_current_day(db, battle_id)
     return DayResponse(day=current_day)
 
 
@@ -67,18 +69,19 @@ def update_day(
     _: None = Depends(ensure_admin_key),
     db: Session = Depends(get_db),
 ) -> DayResponse:
-    """Update the marketplace day."""
-    new_day = set_current_day(db, day_update.day)
+    """Update the marketplace day for a specific battle."""
+    new_day = set_current_day(db, day_update.battle_id, day_update.day)
     return DayResponse(day=new_day)
 
 
 @router.get("/round", response_model=RoundResponse)
 def get_round(
+    battle_id: str,
     _: None = Depends(ensure_admin_key),
     db: Session = Depends(get_db),
 ) -> RoundResponse:
-    """Return the currently configured simulation round."""
-    current_round = get_current_round(db)
+    """Return the currently configured simulation round for a specific battle."""
+    current_round = get_current_round(db, battle_id)
     return RoundResponse(round=current_round)
 
 
@@ -88,8 +91,8 @@ def update_round(
     _: None = Depends(ensure_admin_key),
     db: Session = Depends(get_db),
 ) -> RoundResponse:
-    """Update the simulation round."""
-    new_round = set_current_round(db, round_update.round)
+    """Update the simulation round for a specific battle."""
+    new_round = set_current_round(db, round_update.battle_id, round_update.round)
     return RoundResponse(round=new_round)
 
 @router.post("/metadata")

@@ -83,17 +83,15 @@ class Phase(str, Enum):
     OPEN = "open"
 
 
-def change_phase(phase: Phase) -> None:
+def change_phase(battle_id: str, phase: Phase) -> None:
     """
-    Update the marketplace backend to the specified phase.
+    Update the marketplace backend to the specified phase for a specific battle.
     """
 
     headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
     response = requests.post(
         f"{api_url}/admin/phase",
-        # json={"phase": phase.value},
-        # Currently, disabled because broken.
-        json={"phase": Phase.OPEN.value},
+        json={"battle_id": battle_id, "phase": Phase.OPEN.value},
         headers=headers,
     )
     if response.status_code != 200:
@@ -107,14 +105,14 @@ def change_phase(phase: Phase) -> None:
         )
 
 
-def set_marketplace_day(day: int) -> None:
+def set_marketplace_day(battle_id: str, day: int) -> None:
     """
-    Update the marketplace backend to the specified simulated day.
+    Update the marketplace backend to the specified simulated day for a specific battle.
     """
     headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
     response = requests.post(
         f"{api_url}/admin/day",
-        json={"day": day},
+        json={"battle_id": battle_id, "day": day},
         headers=headers,
     )
     if response.status_code != 200:
@@ -128,14 +126,14 @@ def set_marketplace_day(day: int) -> None:
         )
 
 
-def set_marketplace_round(round_number: int) -> None:
+def set_marketplace_round(battle_id: str, round_number: int) -> None:
     """
-    Persist the active simulation round in the marketplace backend.
+    Persist the active simulation round in the marketplace backend for a specific battle.
     """
     headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
     response = requests.post(
         f"{api_url}/admin/round",
-        json={"round": round_number},
+        json={"battle_id": battle_id, "round": round_number},
         headers=headers,
     )
     if response.status_code != 200:
@@ -148,124 +146,6 @@ def set_marketplace_round(round_number: int) -> None:
             battle_context, f"Marketplace round set to '{round_number}'"
         )
 
-
-def clear_database():
-    """Clear all data from the database tables by running a script in the correct environment"""
-    try:
-        print("🗑️  Clearing database...")
-        if battle_context:
-            record_battle_event(battle_context, "Clearing database...")
-        
-        # Create a simple Python script to clear the database
-        project_root = Path(__file__).parent.parent.parent
-        clear_script = """
-import sys
-sys.path.insert(0, '.')
-from app.database import SessionLocal, Base, engine
-from app.models.purchase import Purchase
-from app.models.product import Product
-from app.models.buyer import Buyer
-from app.models.seller import Seller
-from app.models.image import Image
-
-# Drop all tables and recreate them
-Base.metadata.drop_all(bind=engine)
-Base.metadata.create_all(bind=engine)
-print("Tables cleared and recreated")
-"""
-        
-        # Run the script using uv run to ensure correct environment
-        env = os.environ.copy()
-        result = subprocess.run(
-            ["uv", "run", "python", "-c", clear_script],
-            cwd=str(project_root),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        if result.returncode == 0:
-            message = "✅ Database cleared and tables recreated"
-            print(message)
-            if battle_context:
-                record_battle_event(battle_context, "Database cleared and tables recreated")
-        else:
-            warning = f"⚠️  Warning: Failed to clear database (code {result.returncode})"
-            print(warning)
-            print(f"   stderr: {result.stderr}")
-            if battle_context:
-                record_battle_event(battle_context, f"Failed to clear database (code {result.returncode})")
-            
-    except Exception as e:
-        error_msg = f"⚠️  Warning: Failed to clear database: {e}"
-        print(error_msg)
-        if battle_context:
-            record_battle_event(battle_context, f"Failed to clear database: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
-
-def reload_images():
-    """Reload images from the images directory using the creation script"""
-    try:
-        print("📸 Reloading images from images directory...")
-        if battle_context:
-            record_battle_event(battle_context, "Reloading images from database...")
-        
-        # Get the path to the images directory and script
-        project_root = Path(__file__).parent.parent.parent
-        images_dir = project_root / "images"
-        script_path = images_dir / "create_image_descriptions.py"
-        
-        print(f"   Script path: {script_path}")
-        print(f"   Working directory: {images_dir}")
-        
-        if not script_path.exists():
-            warning = f"⚠️  Warning: Image creation script not found at {script_path}"
-            print(warning)
-            if battle_context:
-                record_battle_event(battle_context, "Image creation script not found")
-            return
-        
-        # Run the script to reload images using uv run to ensure correct environment
-        # Pass environment variables to ensure it uses the same database
-        env = os.environ.copy()
-        result = subprocess.run(
-            ["uv", "run", "python", str(script_path)],
-            cwd=str(images_dir),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-        
-        if result.returncode == 0:
-            message = "✅ Images reloaded successfully"
-            print(message)
-            # Print last few lines of output to confirm
-            output_lines = result.stdout.strip().split('\n')
-            if len(output_lines) > 5:
-                print("   Last lines of output:")
-                for line in output_lines[-5:]:
-                    print(f"   {line}")
-            if battle_context:
-                record_battle_event(battle_context, "Images reloaded successfully")
-        else:
-            warning = f"⚠️  Warning: Image reload script failed with code {result.returncode}"
-            print(warning)
-            print(f"   stderr: {result.stderr}")
-            print(f"   stdout: {result.stdout}")
-            if battle_context:
-                record_battle_event(battle_context, f"Image reload failed (code {result.returncode})")
-            
-    except Exception as e:
-        error_msg = f"⚠️  Warning: Failed to reload images: {e}"
-        print(error_msg)
-        if battle_context:
-            record_battle_event(battle_context, f"Failed to reload images: {str(e)}")
-        import traceback
-        traceback.print_exc()
 
 
 @ab.tool
@@ -338,9 +218,10 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
 
     record_battle_event(battle_context, "Battle orchestration started")
 
-    # Clear database and reload images at the start
-    clear_database()
-    reload_images()
+    # Generate unique battle_id for this battle
+    battle_id_for_api = str(uuid.uuid4())
+    print(f"🎮 Starting battle with ID: {battle_id_for_api}")
+    record_battle_event(battle_context, f"Battle ID: {battle_id_for_api}")
 
     rounds_env = os.getenv("MARKETPLACE_ROUNDS") or os.getenv("SIMULATION_ROUNDS")
     days_env = os.getenv("MARKETPLACE_DAYS") or os.getenv("SIMULATION_DAYS")
@@ -362,14 +243,14 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
         )
 
     try:
-        await create_sellers(seller_infos)
-        await create_buyer()
+        await create_sellers(battle_id_for_api, seller_infos)
+        await create_buyer(battle_id_for_api)
         print(sellers)
         print(buyers)
 
         for current_round in range(1, rounds + 1):
-            set_marketplace_round(current_round)
-            set_marketplace_day(0)
+            set_marketplace_round(battle_id_for_api, current_round)
+            set_marketplace_day(battle_id_for_api, 0)
 
             if battle_context:
                 record_battle_event(
@@ -378,24 +259,24 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
                 )
 
             # Day 0 preparation
-            change_phase(Phase.SELLER_MANAGEMENT)
+            change_phase(battle_id_for_api, Phase.SELLER_MANAGEMENT)
             if current_round == 1:
                 await create_listings()
             else:
                 await sellers_update_listings()
-            await create_ranking()
+            await create_ranking(battle_id_for_api)
 
-            change_phase(Phase.BUYER_SHOPPING)
+            change_phase(battle_id_for_api, Phase.BUYER_SHOPPING)
             await buyers_buy_products()
 
             for current_day in range(1, days):
-                set_marketplace_day(current_day)
-                await update_ranking()
+                set_marketplace_day(battle_id_for_api, current_day)
+                await update_ranking(battle_id_for_api)
 
-                change_phase(Phase.SELLER_MANAGEMENT)
+                change_phase(battle_id_for_api, Phase.SELLER_MANAGEMENT)
                 await sellers_update_listings()
 
-                change_phase(Phase.BUYER_SHOPPING)
+                change_phase(battle_id_for_api, Phase.BUYER_SHOPPING)
                 await buyers_buy_products()
 
             if battle_context:
@@ -411,26 +292,26 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
 
     finally:
         try:
-            change_phase(Phase.OPEN)
+            change_phase(battle_id_for_api, Phase.OPEN)
         except Exception as phase_error:
             warning = f"Failed to reset marketplace phase: {phase_error}"
             if battle_context:
                 record_battle_event(battle_context, warning)
             print(warning)
 
-    await report_leaderboard()
+    await report_leaderboard(battle_id_for_api)
     
 
 
 
-async def create_sellers(seller_infos: list):
+async def create_sellers(battle_id: str, seller_infos: list):
     seller_names = {}  # Map seller_id to agent_name
     
     for seller_info in seller_infos:
-        # todo: add super admin auth token
         print("🥥 Creating seller")
         response = requests.post(
             api_url + "/createSeller",
+            json={"battle_id": battle_id},
             headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
         if response.status_code != 200:
@@ -462,7 +343,7 @@ async def create_sellers(seller_infos: list):
         print(f"⚠️  Warning: Failed to store seller names: {e}")
 
 
-async def create_buyer():
+async def create_buyer(battle_id: str):
     """Create buyers based on configuration from tools/scenario.toml"""
     # Load scenario configuration
     scenario_path = Path(__file__).parent.parent.parent / "tools" / "scenario.toml"
@@ -492,6 +373,7 @@ async def create_buyer():
         # Create buyer via API
         response = requests.post(
             api_url + "/createBuyer",
+            json={"battle_id": battle_id},
             headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
 
@@ -500,7 +382,6 @@ async def create_buyer():
 
         buyer_data = response.json()
         # Store buyer with URL constructed from agent configuration
-        # todo: is that a problem that the buyer has to run local (because of the http://)?
         url = f"http://{agent_host}:{agent_port}"
         buyer_id = buyer_data.get("id")
         buyers.append(
@@ -553,9 +434,9 @@ Response format:
     await _send_prompts_to_agents(sellers, prompt_template, "Telling sellers to create products...", timeout_seconds)
 
 
-async def create_ranking():
+async def create_ranking(battle_id: str):
     # Initialize rankings with random values via API
-    response = requests.post(f"{api_url}/rankings/initialize")
+    response = requests.post(f"{api_url}/rankings/initialize?battle_id={battle_id}")
     if response.status_code != 200:
         raise Exception(f"Failed to initialize rankings: {response.text}")
     
@@ -566,9 +447,9 @@ async def create_ranking():
         record_battle_event(battle_context, result['message'])
 
 
-async def update_ranking():
+async def update_ranking(battle_id: str):
     # Update rankings based on sales performance via API
-    response = requests.post(f"{api_url}/rankings/update-by-sales")
+    response = requests.post(f"{api_url}/rankings/update-by-sales?battle_id={battle_id}")
     if response.status_code != 200:
         warning = f"Warning: Failed to update rankings: {response.text}"
         print(warning)
@@ -640,7 +521,7 @@ Response format:
     await _send_prompts_to_agents(sellers, prompt_template, "Telling sellers to update products...", timeout_seconds)
 
 
-async def report_leaderboard():
+async def report_leaderboard(battle_id: str):
     """Queries the purchase history and reports a leaderboard (total profit,
     etc.) to AgentBeats."""
     global battle_context, sellers
@@ -652,7 +533,7 @@ async def report_leaderboard():
     try:
         # Step 1: Fetch leaderboard data from API
         record_battle_event(battle_context, "Fetching leaderboard data")
-        response = requests.get(f"{api_url}/buy/stats/leaderboard")
+        response = requests.get(f"{api_url}/buy/stats/leaderboard?battle_id={battle_id}")
 
         if response.status_code != 200:
             error_msg = f"Failed to fetch leaderboard: {response.text}"

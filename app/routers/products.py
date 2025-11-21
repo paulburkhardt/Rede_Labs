@@ -35,15 +35,29 @@ def create_product(
     # Extract token from Authorization header
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
 
+    # Decode token to get seller_id and battle_id
+    decoded = Seller.decode_auth_token(token)
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid authentication token format")
+    
+    seller_id, battle_id = decoded
+
     # Verify seller exists and token is valid
-    seller = db.query(Seller).filter(Seller.auth_token == token).first()
+    seller = db.query(Seller).filter(
+        Seller.id == seller_id,
+        Seller.battle_id == battle_id,
+        Seller.auth_token == token
+    ).first()
     if not seller:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
 
-    ensure_phase(db, [Phase.SELLER_MANAGEMENT])
+    ensure_phase(db, battle_id, [Phase.SELLER_MANAGEMENT])
     
-    # Check if product with this ID already exists
-    existing_product = db.query(Product).filter(Product.id == id).first()
+    # Check if product with this ID already exists in this battle
+    existing_product = db.query(Product).filter(
+        Product.id == id,
+        Product.battle_id == battle_id
+    ).first()
     if existing_product:
         raise HTTPException(status_code=400, detail="Product with this ID already exists")
     
@@ -95,12 +109,13 @@ def create_product(
     # Create new product
     db_product = Product(
         id=id,
+        battle_id=battle_id,
         name=product.name,
         short_description=product.short_description,
         long_description=product.long_description,
         price_in_cent=product.price,
         seller_id=seller.id,
-        towel_variant=variant,
+        towel_variant=variant.value if variant else None,  # Use .value to get the string value
         gsm=spec.gsm,
         width_inches=spec.width_inches,
         length_inches=spec.length_inches,
@@ -133,13 +148,27 @@ def update_product(
     # Extract token from Authorization header
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
     
+    # Decode token to get seller_id and battle_id
+    decoded = Seller.decode_auth_token(token)
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid authentication token format")
+    
+    seller_id, battle_id = decoded
+    
     # Verify seller exists and token is valid
-    seller = db.query(Seller).filter(Seller.auth_token == token).first()
+    seller = db.query(Seller).filter(
+        Seller.id == seller_id,
+        Seller.battle_id == battle_id,
+        Seller.auth_token == token
+    ).first()
     if not seller:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     
-    # Get the product
-    db_product = db.query(Product).filter(Product.id == id).first()
+    # Get the product in this battle
+    db_product = db.query(Product).filter(
+        Product.id == id,
+        Product.battle_id == battle_id
+    ).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     
@@ -147,7 +176,7 @@ def update_product(
     if db_product.seller_id != seller.id:
         raise HTTPException(status_code=403, detail="You can only update your own products")
 
-    ensure_phase(db, [Phase.SELLER_MANAGEMENT])
+    ensure_phase(db, battle_id, [Phase.SELLER_MANAGEMENT])
     
     # Update fields if provided
     if product.name is not None:

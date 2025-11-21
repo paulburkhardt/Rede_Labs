@@ -14,13 +14,16 @@ router = APIRouter(prefix="/rankings", tags=["rankings"])
 
 
 @router.post("/initialize")
-def initialize_rankings(db: Session = Depends(get_db)):
+def initialize_rankings(
+    battle_id: str,
+    db: Session = Depends(get_db)
+):
     """
-    Initialize product rankings with random values.
+    Initialize product rankings with random values for a specific battle.
     Used at the start of a battle before any purchases are made.
     """
-    # Get all products
-    products = db.query(Product).all()
+    # Get all products in this battle
+    products = db.query(Product).filter(Product.battle_id == battle_id).all()
     
     if not products:
         return {"message": "No products to rank", "updated_count": 0}
@@ -42,27 +45,33 @@ def initialize_rankings(db: Session = Depends(get_db)):
 
 
 @router.post("/update-by-sales")
-def update_rankings_by_sales(db: Session = Depends(get_db)):
+def update_rankings_by_sales(
+    battle_id: str,
+    db: Session = Depends(get_db)
+):
     """
-    Update product rankings based on sales performance.
+    Update product rankings based on sales performance for a specific battle.
     Products with more purchases get better rankings (lower numbers).
     Rank 1 = most sales, Rank 2 = second most sales, etc.
     """
-    # Get all products
-    products = db.query(Product).all()
+    # Get all products in this battle
+    products = db.query(Product).filter(Product.battle_id == battle_id).all()
     
     if not products:
         return {"message": "No products to rank", "updated_count": 0}
     
-    # Count purchases per product
-    current_round = get_current_round(db)
+    # Count purchases per product in this battle
+    current_round = get_current_round(db, battle_id)
 
     purchase_counts = (
         db.query(
             Purchase.product_id,
             func.count(Purchase.id).label("purchase_count")
         )
-        .filter(Purchase.round == current_round)
+        .filter(
+            Purchase.battle_id == battle_id,
+            Purchase.round == current_round
+        )
         .group_by(Purchase.product_id)
         .all()
     )

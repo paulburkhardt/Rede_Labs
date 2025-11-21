@@ -7,9 +7,12 @@ DAY_KEY = "current_day"
 DEFAULT_DAY = 0
 
 
-def get_current_day(db: Session) -> int:
-    """Return the currently configured simulated marketplace day."""
-    record = db.query(Metadata).filter(Metadata.key == DAY_KEY).first()
+def get_current_day(db: Session, battle_id: str) -> int:
+    """Return the currently configured simulated marketplace day for a specific battle."""
+    record = db.query(Metadata).filter(
+        Metadata.key == DAY_KEY,
+        Metadata.battle_id == battle_id
+    ).first()
     if record is None:
         return DEFAULT_DAY
 
@@ -19,17 +22,20 @@ def get_current_day(db: Session) -> int:
         return DEFAULT_DAY
 
 
-def set_current_day(db: Session, day: int) -> int:
-    """Persist the provided day value in metadata."""
+def set_current_day(db: Session, battle_id: str, day: int) -> int:
+    """Persist the provided day value in metadata for a specific battle."""
     if day < 0:
         raise HTTPException(
             status_code=400,
             detail="Day must be a non-negative integer",
         )
 
-    record = db.query(Metadata).filter(Metadata.key == DAY_KEY).first()
+    record = db.query(Metadata).filter(
+        Metadata.key == DAY_KEY,
+        Metadata.battle_id == battle_id
+    ).first()
     if record is None:
-        record = Metadata(key=DAY_KEY, value=str(day))
+        record = Metadata(key=DAY_KEY, battle_id=battle_id, value=str(day))
         db.add(record)
     else:
         record.value = str(day)

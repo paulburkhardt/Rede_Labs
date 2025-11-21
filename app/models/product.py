@@ -11,6 +11,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    battle_id = Column(String, nullable=False, index=True)
     name = Column(String, nullable=False)
     short_description = Column(String, nullable=False)
     long_description = Column(String, nullable=False)
@@ -20,7 +21,7 @@ class Product(Base):
     ranking = Column(Integer, nullable=True)
     
     # Towel variant properties
-    towel_variant = Column(Enum(TowelVariant), nullable=False)
+    towel_variant = Column(Enum(TowelVariant, values_callable=lambda x: [e.value for e in x]), nullable=False)
     gsm = Column(Integer, nullable=False)
     width_inches = Column(Integer, nullable=False)
     length_inches = Column(Integer, nullable=False)
