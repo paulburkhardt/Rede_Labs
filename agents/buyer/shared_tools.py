@@ -254,7 +254,7 @@ def purchase_product(
     
     if response.status_code == 200:
         data = response.json()
-        price = data.get("price_in_cent", 0) / 100
+        price = data.get("price_of_purchase", 0) / 100
         log_tool_response("purchase_product", True, f"Purchased {product_id} for ${price:.2f}")
         return {
             "success": True,
