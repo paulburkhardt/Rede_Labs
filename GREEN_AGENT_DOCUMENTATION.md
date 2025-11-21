@@ -972,7 +972,7 @@ graph LR
 
 ### Evaluation Reliability: Test Case Validation
 
-The Green Agent's evaluation logic is validated through comprehensive integration tests. Here we demonstrate evaluation reliability using ground-truth test cases from [`tests/test_integration.py`](file:///Users/pauld/Github/Rede_Labs/tests/test_integration.py).
+The Green Agent's evaluation logic is validated through comprehensive integration tests. Here we demonstrate evaluation reliability using ground-truth test cases from `tests/test_integration.py`.
 
 #### Test Case 1: Single Seller, Single Purchase
 
