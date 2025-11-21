@@ -168,53 +168,6 @@ You can kill the agents with:
 uv run tools/kill_agents.py
 ```
 
-## API Endpoints
-
-### Sellers
-
-- **POST /createSeller** - Create a new seller
-  ```json
-  {
-    "name": "string"
-  }
-  ```
-
-### Products
-
-- **POST /product/{id}** - Create a new product
-- **PATCH /product/{id}** - Update an existing product
-- **GET /product/{id}** - Get product details
-
-### Search
-
-- **GET /search?q={productName}** - Search for products
-
-### Purchases
-
-- **POST /buy/{productId}** - Simulate a product purchase
-
-## Database Schema
-
-### Sellers
-- `id` (String, Primary Key)
-
-### Products
-- `id` (String, Primary Key)
-- `name` (String)
-- `short_description` (String)
-- `long_description` (String)
-- `price_in_cent` (Integer)
-- `currency` (String, default: "USD")
-- `bestseller` (Boolean)
-- `image_url` (String)
-- `image_alternative_text` (String)
-- `seller_id` (Foreign Key → Sellers)
-
-### Purchases
-- `id` (String, Primary Key)
-- `product_id` (Foreign Key → Products)
-- `purchased_at` (DateTime)
-
 ## Development
 
 ### Running Tests
