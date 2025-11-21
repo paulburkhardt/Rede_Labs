@@ -232,9 +232,11 @@ uv run pytest tests/test_products.py -v
 - **Package Manager**: uv
 - **Server**: Uvicorn
 - **Testing**: pytest + httpx TestClient
-- **AI**: OpenAI GPT-4o-mini (Vision API)
+- **AI**: OpenAI
 
 ## Tmux Setup
+
+To view the logs of the agents, you can use tmux. This is optional and only needed for debugging.
 
 ### Enable logs
 
