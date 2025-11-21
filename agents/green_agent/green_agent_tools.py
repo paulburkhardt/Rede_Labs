@@ -342,6 +342,8 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
     clear_database()
     reload_images()
 
+    await set_battle_metadata(battle_id, green_battle_context.get("backend_url"))
+
     rounds_env = os.getenv("MARKETPLACE_ROUNDS") or os.getenv("SIMULATION_ROUNDS")
     days_env = os.getenv("MARKETPLACE_DAYS") or os.getenv("SIMULATION_DAYS")
 
@@ -460,6 +462,19 @@ async def create_sellers(seller_infos: list):
         print(f"✅ Stored seller names in metadata: {seller_names}")
     except Exception as e:
         print(f"⚠️  Warning: Failed to store seller names: {e}")
+
+
+async def set_battle_metadata(battle_id: str, backend_url: str):
+    try:
+        headers = {"X-Admin-Key": admin_api_key} if admin_api_key else None
+        requests.post(
+            f"{api_url}/admin/metadata",
+            json={"battle_id": battle_id, "backend_url": backend_url},
+            headers=headers
+        )
+        print(f"✅ Stored battle metadata: {battle_id}, {backend_url}")
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to store battle metadata: {e}")
 
 
 async def create_buyer():
