@@ -5,10 +5,11 @@ import pytest
 class TestSellerCreation:
     """Test seller creation endpoint"""
     
-    def test_create_seller_success(self, client):
+    def test_create_seller_success(self, client, battle_id):
         """Test successful seller creation"""
         response = client.post(
-            "/createSeller"
+            "/createSeller",
+            json={"battle_id": battle_id}
         )
         
         assert response.status_code == 200
@@ -22,17 +23,20 @@ class TestSellerCreation:
         assert len(data["id"]) > 0
         assert len(data["auth_token"]) > 0
     
-    def test_create_multiple_sellers(self, client):
+    def test_create_multiple_sellers(self, client, battle_id):
         """Test creating multiple sellers with unique tokens"""
         seller1 = client.post(
-            "/createSeller"
+            "/createSeller",
+            json={"battle_id": battle_id}
         ).json()
         
         seller2 = client.post(
-            "/createSeller"
+            "/createSeller",
+            json={"battle_id": battle_id}
         ).json()
         
         # Verify different IDs and tokens
         assert seller1["id"] != seller2["id"]
         assert seller1["auth_token"] != seller2["auth_token"]
+
     

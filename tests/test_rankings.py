@@ -4,14 +4,15 @@ from app.services.phase_manager import Phase
 
 
 @pytest.fixture
-def sample_products(client, sample_seller, sample_images):
+def sample_products(client, battle_id, sample_seller, sample_images):
     """Create multiple sample products for testing"""
     products = []
     product_names = ["Towel A", "Towel B", "Towel C"]
-    
+
     for name in product_names:
+        product_id = f"{name.lower().replace(' ', '-')}-{battle_id[:8]}"
         response = client.post(
-            f"/product/{name.lower().replace(' ', '-')}",
+            f"/product/{product_id}",
             json={
                 "name": name,
                 "short_description": f"{name} description",
@@ -24,14 +25,14 @@ def sample_products(client, sample_seller, sample_images):
         )
         assert response.status_code == 200
         products.append(response.json())
-    
+
     return products
 
 
 class TestRankingInitialization:
-    def test_initialize_rankings_success(self, client, sample_products):
+    def test_initialize_rankings_success(self, client, battle_id, sample_products):
         """Test that rankings can be initialized randomly"""
-        response = client.post("/rankings/initialize")
+        response = client.post(f"/rankings/initialize?battle_id={battle_id}")
         
         assert response.status_code == 200
         result = response.json()
@@ -39,7 +40,7 @@ class TestRankingInitialization:
         assert "Initialized" in result["message"]
         
         # Verify rankings were set
-        search_response = client.get("/search?q=")
+        search_response = client.get(f"/search?battle_id={battle_id}&q=")
         products = search_response.json()
         
         # All products should have rankings
@@ -48,30 +49,30 @@ class TestRankingInitialization:
         assert len(set(rankings)) == 3  # All rankings should be unique
         assert set(rankings) == {1, 2, 3}  # Should be ranks 1, 2, 3
     
-    def test_initialize_rankings_no_products(self, client):
+    def test_initialize_rankings_no_products(self, client, battle_id):
         """Test initialization when no products exist"""
-        response = client.post("/rankings/initialize")
+        response = client.post(f"/rankings/initialize?battle_id={battle_id}")
         
         assert response.status_code == 200
         result = response.json()
         assert result["updated_count"] == 0
         assert "No products" in result["message"]
     
-    def test_initialize_rankings_multiple_times(self, client, sample_products):
+    def test_initialize_rankings_multiple_times(self, client, battle_id, sample_products):
         """Test that re-initialization changes rankings"""
         # First initialization
-        response1 = client.post("/rankings/initialize")
+        response1 = client.post(f"/rankings/initialize?battle_id={battle_id}")
         assert response1.status_code == 200
-        
-        search1 = client.get("/search?q=")
+
+        search1 = client.get(f"/search?battle_id={battle_id}&q=")
         products1 = search1.json()
         rankings1 = {p["id"]: p["ranking"] for p in products1}
-        
+
         # Second initialization
-        response2 = client.post("/rankings/initialize")
+        response2 = client.post(f"/rankings/initialize?battle_id={battle_id}")
         assert response2.status_code == 200
-        
-        search2 = client.get("/search?q=")
+
+        search2 = client.get(f"/search?battle_id={battle_id}&q=")
         products2 = search2.json()
         rankings2 = {p["id"]: p["ranking"] for p in products2}
         
@@ -82,9 +83,9 @@ class TestRankingInitialization:
 
 
 class TestRankingUpdateBySales:
-    def test_update_rankings_by_sales_no_purchases(self, client, sample_products):
+    def test_update_rankings_by_sales_no_purchases(self, client, battle_id, sample_products):
         """Test ranking update when no purchases have been made"""
-        response = client.post("/rankings/update-by-sales")
+        response = client.post(f"/rankings/update-by-sales?battle_id={battle_id}")
         
         assert response.status_code == 200
         result = response.json()
@@ -92,13 +93,13 @@ class TestRankingUpdateBySales:
         assert "based on sales" in result["message"]
         
         # All products should have 0 sales, so ranking order is arbitrary but valid
-        search_response = client.get("/search?q=")
+        search_response = client.get(f"/search?battle_id={battle_id}&q=")
         products = search_response.json()
         rankings = [p["ranking"] for p in products]
         assert set(rankings) == {1, 2, 3}
     
     def test_update_rankings_by_sales_with_purchases(
-        self, client, sample_seller, sample_buyer, sample_products, sample_images, set_phase
+        self, client, battle_id, sample_seller, sample_buyer, sample_products, sample_images, set_phase
     ):
         """Test that rankings are updated based on actual sales"""
         # Create three products
@@ -122,7 +123,7 @@ class TestRankingUpdateBySales:
         assert purchase_response.status_code == 200, f"Purchase failed: {purchase_response.text}"
         
         # Update rankings
-        response = client.post("/rankings/update-by-sales")
+        response = client.post(f"/rankings/update-by-sales?battle_id={battle_id}")
         assert response.status_code == 200
         result = response.json()
         
@@ -143,7 +144,7 @@ class TestRankingUpdateBySales:
         assert top_products[2]["sales_count"] == 0
         
         # Verify rankings in search results
-        search_response = client.get("/search?q=")
+        search_response = client.get(f"/search?battle_id={battle_id}&q=")
         products = search_response.json()
         
         # Products should be ordered by ranking (1, 2, 3)
@@ -152,35 +153,35 @@ class TestRankingUpdateBySales:
         assert products[2]["ranking"] == 3
     
     def test_update_rankings_reflects_in_search_order(
-        self, client, sample_seller, sample_buyer, sample_products, set_phase
+        self, client, battle_id, sample_seller, sample_buyer, sample_products, set_phase
     ):
         """Test that updated rankings affect search result ordering"""
         product_ids = [p["product_id"] for p in sample_products]
-        
+
         # Set phase to allow purchases
         set_phase(Phase.BUYER_SHOPPING)
-        
+
         # Make product 2 the best seller
         for _ in range(5):
             client.post(
                 f"/buy/{product_ids[2]}",
                 headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
             )
-        
+
         # Update rankings
-        client.post("/rankings/update-by-sales")
-        
+        client.post(f"/rankings/update-by-sales?battle_id={battle_id}")
+
         # Search should return product 2 first
-        search_response = client.get("/search?q=towel")
+        search_response = client.get(f"/search?battle_id={battle_id}&q=towel")
         products = search_response.json()
         
         assert len(products) == 3
         assert products[0]["id"] == product_ids[2]
         assert products[0]["ranking"] == 1
     
-    def test_update_rankings_no_products(self, client):
+    def test_update_rankings_no_products(self, client, battle_id):
         """Test update when no products exist"""
-        response = client.post("/rankings/update-by-sales")
+        response = client.post(f"/rankings/update-by-sales?battle_id={battle_id}")
         
         assert response.status_code == 200
         result = response.json()
@@ -190,16 +191,16 @@ class TestRankingUpdateBySales:
 
 class TestRankingWorkflow:
     def test_complete_ranking_workflow(
-        self, client, sample_seller, sample_buyer, sample_products, set_phase
+        self, client, battle_id, sample_seller, sample_buyer, sample_products, set_phase
     ):
         """Test the complete workflow: initialize -> purchases -> update"""
         # Step 1: Initialize rankings randomly
-        init_response = client.post("/rankings/initialize")
+        init_response = client.post(f"/rankings/initialize?battle_id={battle_id}")
         assert init_response.status_code == 200
-        
+
         # Step 2: Set phase to allow purchases
         set_phase(Phase.BUYER_SHOPPING)
-        
+
         # Step 3: Make some purchases
         product_ids = [p["product_id"] for p in sample_products]
         client.post(
@@ -210,13 +211,13 @@ class TestRankingWorkflow:
             f"/buy/{product_ids[1]}",
             headers={"Authorization": f"Bearer {sample_buyer['auth_token']}"}
         )
-        
+
         # Step 4: Update rankings based on sales
-        update_response = client.post("/rankings/update-by-sales")
+        update_response = client.post(f"/rankings/update-by-sales?battle_id={battle_id}")
         assert update_response.status_code == 200
-        
+
         # Step 5: Verify product 1 is now rank 1
-        search_response = client.get("/search?q=")
+        search_response = client.get(f"/search?battle_id={battle_id}&q=")
         products = search_response.json()
         
         best_product = products[0]

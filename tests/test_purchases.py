@@ -112,7 +112,7 @@ class TestPurchaseCreation:
         assert len(stats["purchases"]) == 1
         assert stats["purchases"][0]["round"] == 2
     
-    def test_purchase_without_auth(self, client, sample_product, set_phase):
+    def test_purchase_without_auth(self, client, battle_id, sample_product, set_phase):
         """Test that purchase fails without authentication"""
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
@@ -121,7 +121,7 @@ class TestPurchaseCreation:
         
         assert response.status_code == 422  # Missing required header
     
-    def test_purchase_with_invalid_token(self, client, sample_product, set_phase):
+    def test_purchase_with_invalid_token(self, client, battle_id, sample_product, set_phase):
         """Test that purchase fails with invalid buyer token"""
         set_phase(Phase.BUYER_SHOPPING)
         response = client.post(
@@ -130,7 +130,7 @@ class TestPurchaseCreation:
         )
         
         assert response.status_code == 401
-        assert response.json()["detail"] == "Invalid authentication token"
+        assert response.json()["detail"] == "Invalid authentication token format"
     
     def test_purchase_nonexistent_product(
         self, client, sample_buyer, set_phase
@@ -171,16 +171,18 @@ class TestPurchaseCreation:
         assert purchase1["product_id"] == purchase2["product_id"]
     
     def test_multiple_buyers_purchase_same_product(
-        self, client, sample_product, set_phase
+        self, client, battle_id, sample_product, set_phase
     ):
         """Test that multiple buyers can purchase the same product"""
         # Create two buyers
         buyer1 = client.post(
             "/createBuyer",
+            json={"battle_id": battle_id}
         ).json()
-        
+
         buyer2 = client.post(
             "/createBuyer",
+            json={"battle_id": battle_id}
         ).json()
         
         # Both purchase the same product
@@ -232,18 +234,21 @@ class TestPurchaseCreation:
 class TestPurchaseWorkflow:
     """Test complete purchase workflows"""
     
-    def test_complete_marketplace_workflow(self, client, sample_images, set_phase):
+    def test_complete_marketplace_workflow(self, client, battle_id, sample_images, set_phase):
         """Test a complete workflow: create org, product, buyer, and purchase"""
+        product_id = f"premium-towel-{battle_id[:8]}"
+
         # Step 1: Create seller
         org = client.post(
             "/createSeller",
+            json={"battle_id": battle_id}
         ).json()
-        
+
         assert "auth_token" in org
-        
+
         # Step 2: Create product
         product_response = client.post(
-            "/product/premium-towel",
+            f"/product/{product_id}",
             json={
                 "name": "Premium Cotton Towel",
                 "short_description": "Luxurious and soft",
@@ -255,22 +260,23 @@ class TestPurchaseWorkflow:
             headers={"Authorization": f"Bearer {org['auth_token']}"}
         )
         assert product_response.status_code == 200
-        
+
         # Step 3: Search for product
-        search_response = client.get("/search?q=premium")
+        search_response = client.get(f"/search?battle_id={battle_id}&q=premium")
         assert search_response.status_code == 200
         search_results = search_response.json()
         assert len(search_results) == 1
         assert search_results[0]["name"] == "Premium Cotton Towel"
-        
+
         # Step 4: Get product details
-        product_details = client.get("/product/premium-towel").json()
+        product_details = client.get(f"/product/{product_id}").json()
         assert product_details["name"] == "Premium Cotton Towel"
         assert product_details["price_in_cent"] == 3999
         
         # Step 5: Create buyer
         buyer = client.post(
             "/createBuyer",
+            json={"battle_id": battle_id}
         ).json()
         
         assert "auth_token" in buyer
@@ -278,16 +284,16 @@ class TestPurchaseWorkflow:
         # Step 6: Make purchase
         set_phase(Phase.BUYER_SHOPPING)
         purchase_response = client.post(
-            "/buy/premium-towel",
+            f"/buy/{product_id}",
             headers={"Authorization": f"Bearer {buyer['auth_token']}"}
         )
-        
+
         assert purchase_response.status_code == 200
         purchase = purchase_response.json()
-        assert purchase["product_id"] == "premium-towel"
+        assert purchase["product_id"] == product_id
         assert "id" in purchase
     
-    def test_buyer_cannot_update_products(self, client, sample_product, sample_buyer):
+    def test_buyer_cannot_update_products(self, client, battle_id, sample_product, sample_buyer):
         """Test that buyer token cannot be used to update products"""
         response = client.patch(
             f"/product/{sample_product['id']}",

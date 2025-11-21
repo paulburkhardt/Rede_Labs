@@ -5,7 +5,7 @@ import pytest
 class TestImageQueryEndpoints:
     """Test image query endpoints"""
     
-    def test_get_all_images_grouped_by_product_number(self, client, sample_images):
+    def test_get_all_images_grouped_by_product_number(self, client, battle_id, sample_images):
         """Test getting all images grouped by product_number"""
         response = client.get("/images")
         
@@ -32,7 +32,7 @@ class TestImageQueryEndpoints:
         # Verify no base64 in response
         assert "base64" not in first_image
     
-    def test_get_images_by_product_number(self, client, sample_images):
+    def test_get_images_by_product_number(self, client, battle_id, sample_images):
         """Test getting images for a specific product_number"""
         response = client.get("/images/product-number/01")
         
@@ -46,14 +46,14 @@ class TestImageQueryEndpoints:
             assert "image_description" in img
             assert "base64" not in img
     
-    def test_get_images_by_nonexistent_product_number(self, client, sample_images):
+    def test_get_images_by_nonexistent_product_number(self, client, battle_id, sample_images):
         """Test getting images for a product_number that doesn't exist"""
         response = client.get("/images/product-number/99")
         
         assert response.status_code == 404
         assert "No images found" in response.json()["detail"]
     
-    def test_get_available_product_numbers(self, client, sample_images):
+    def test_get_available_product_numbers(self, client, battle_id, sample_images):
         """Test getting list of available product_numbers"""
         response = client.get("/images/product-numbers")
         
@@ -70,7 +70,7 @@ class TestImageQueryEndpoints:
 class TestProductCreationWithImages:
     """Test product creation with the new image system"""
     
-    def test_create_product_with_valid_images(self, client, sample_seller, sample_images):
+    def test_create_product_with_valid_images(self, client, battle_id, sample_seller, sample_images):
         """Test creating a product with valid image IDs from same product_number"""
         image_ids = [img.id for img in sample_images["01"][:2]]
         
@@ -92,7 +92,7 @@ class TestProductCreationWithImages:
         assert response.status_code == 200
         assert response.json()["product_id"] == "towel-001"
     
-    def test_create_product_with_single_image(self, client, sample_seller, sample_images):
+    def test_create_product_with_single_image(self, client, battle_id, sample_seller, sample_images):
         """Test creating a product with a single image"""
         image_ids = [sample_images["02"][0].id]
         
@@ -113,7 +113,7 @@ class TestProductCreationWithImages:
         
         assert response.status_code == 200
     
-    def test_create_product_with_all_images_from_category(self, client, sample_seller, sample_images):
+    def test_create_product_with_all_images_from_category(self, client, battle_id, sample_seller, sample_images):
         """Test creating a product with all images from a category"""
         image_ids = [img.id for img in sample_images["03"]]  # All 4 images
         
@@ -134,7 +134,7 @@ class TestProductCreationWithImages:
         
         assert response.status_code == 200
     
-    def test_create_product_without_images(self, client, sample_seller):
+    def test_create_product_without_images(self, client, battle_id, sample_seller):
         """Test that creating a product without images fails"""
         product_data = {
             "name": "No Image Product",
@@ -157,7 +157,7 @@ class TestProductCreationWithImages:
         assert "image_ids" in str(response_data).lower()
         assert "required" in str(response_data).lower() or "at least one" in str(response_data).lower()
     
-    def test_create_product_with_nonexistent_image_ids(self, client, sample_seller):
+    def test_create_product_with_nonexistent_image_ids(self, client, battle_id, sample_seller):
         """Test that using non-existent image IDs fails"""
         product_data = {
             "name": "Bad Image Product",
@@ -177,7 +177,7 @@ class TestProductCreationWithImages:
         assert response.status_code == 404
         assert "Images not found" in response.json()["detail"]
     
-    def test_create_product_with_mixed_product_numbers(self, client, sample_seller, sample_images):
+    def test_create_product_with_mixed_product_numbers(self, client, battle_id, sample_seller, sample_images):
         """Test that mixing images from different product_numbers fails"""
         # Mix images from product_number 01 and 02
         image_ids = [
@@ -205,7 +205,7 @@ class TestProductCreationWithImages:
         assert "01" in response.json()["detail"]
         assert "02" in response.json()["detail"]
     
-    def test_create_product_with_uncategorized_image(self, client, sample_seller, sample_images):
+    def test_create_product_with_uncategorized_image(self, client, battle_id, sample_seller, sample_images):
         """Test that using images without product_number fails"""
         image_ids = [sample_images["uncategorized"].id]
         
@@ -227,7 +227,7 @@ class TestProductCreationWithImages:
         assert response.status_code == 400
         assert "product_number assigned" in response.json()["detail"]
     
-    def test_create_product_with_partial_nonexistent_images(self, client, sample_seller, sample_images):
+    def test_create_product_with_partial_nonexistent_images(self, client, battle_id, sample_seller, sample_images):
         """Test that mixing valid and invalid image IDs fails"""
         image_ids = [
             sample_images["01"][0].id,
@@ -256,7 +256,7 @@ class TestProductCreationWithImages:
 class TestProductUpdateWithImages:
     """Test product update with the new image system"""
     
-    def test_update_product_images(self, client, sample_product, sample_images):
+    def test_update_product_images(self, client, battle_id, sample_product, sample_images):
         """Test updating product images to different ones from same category"""
         # Original product uses all 3 images from category 01
         # Update to use only 2 different images from category 01
@@ -280,7 +280,7 @@ class TestProductUpdateWithImages:
         product = get_response.json()
         assert len(product["images"]) == 2
     
-    def test_update_product_to_different_category(self, client, sample_product, sample_images):
+    def test_update_product_to_different_category(self, client, battle_id, sample_product, sample_images):
         """Test updating product to use images from a different category"""
         # Change from category 01 to category 02
         new_image_ids = [img.id for img in sample_images["02"]]
@@ -303,7 +303,7 @@ class TestProductUpdateWithImages:
         product = get_response.json()
         assert all(img["product_number"] == "02" for img in product["images"])
     
-    def test_update_product_with_mixed_categories_fails(self, client, sample_product, sample_images):
+    def test_update_product_with_mixed_categories_fails(self, client, battle_id, sample_product, sample_images):
         """Test that updating to mixed categories fails"""
         mixed_image_ids = [
             sample_images["01"][0].id,
@@ -324,7 +324,7 @@ class TestProductUpdateWithImages:
         assert response.status_code == 400
         assert "same product_number" in response.json()["detail"]
     
-    def test_update_product_with_empty_images_fails(self, client, sample_product):
+    def test_update_product_with_empty_images_fails(self, client, battle_id, sample_product):
         """Test that updating to empty images fails"""
         update_data = {
             "image_ids": [],
@@ -340,7 +340,7 @@ class TestProductUpdateWithImages:
         assert response.status_code == 400
         assert "At least one image_id is required" in response.json()["detail"]
     
-    def test_update_other_fields_without_images(self, client, sample_product):
+    def test_update_other_fields_without_images(self, client, battle_id, sample_product):
         """Test updating other fields without changing images"""
         update_data = {
             "name": "Updated Product Name",
@@ -367,7 +367,7 @@ class TestProductUpdateWithImages:
 class TestProductRetrievalWithImages:
     """Test product retrieval returns correct image data"""
     
-    def test_get_product_returns_image_descriptions(self, client, sample_product):
+    def test_get_product_returns_image_descriptions(self, client, battle_id, sample_product):
         """Test that getting a product returns image descriptions without base64"""
         response = client.get(f"/product/{sample_product['id']}")
         
@@ -385,7 +385,7 @@ class TestProductRetrievalWithImages:
             assert "base64" not in img
             assert img["product_number"] == "01"
     
-    def test_search_returns_image_descriptions(self, client, sample_product):
+    def test_search_returns_image_descriptions(self, client, battle_id, sample_product):
         """Test that search results return image descriptions without base64"""
         response = client.get("/search?q=Test")
         
@@ -404,7 +404,7 @@ class TestProductRetrievalWithImages:
             assert "product_number" in img
             assert "base64" not in img
     
-    def test_multiple_products_with_different_image_sets(self, client, sample_seller, sample_images):
+    def test_multiple_products_with_different_image_sets(self, client, battle_id, sample_seller, sample_images):
         """Test that multiple products can use different image sets"""
         # Create product 1 with category 01 images
         product1_data = {
@@ -454,7 +454,7 @@ class TestProductRetrievalWithImages:
 class TestImageSystemEdgeCases:
     """Test edge cases and error handling"""
     
-    def test_create_product_with_duplicate_image_ids(self, client, sample_seller, sample_images):
+    def test_create_product_with_duplicate_image_ids(self, client, battle_id, sample_seller, sample_images):
         """Test creating a product with duplicate image IDs"""
         # Use same image ID twice - SQLAlchemy will deduplicate them
         image_id = sample_images["01"][0].id
@@ -482,7 +482,7 @@ class TestImageSystemEdgeCases:
         product = client.get("/product/dup-img-prod").json()
         assert len(product["images"]) == 1
     
-    def test_multiple_products_can_share_same_images(self, client, sample_seller, sample_images):
+    def test_multiple_products_can_share_same_images(self, client, battle_id, sample_seller, sample_images):
         """Test that multiple products can use the same images"""
         image_ids = [img.id for img in sample_images["01"][:2]]
         
@@ -527,7 +527,7 @@ class TestImageSystemEdgeCases:
         assert len(prod1["images"]) == 2
         assert len(prod2["images"]) == 2
     
-    def test_image_query_with_no_images_in_database(self, client):
+    def test_image_query_with_no_images_in_database(self, client, battle_id):
         """Test image endpoints when no images exist"""
         # This test runs without sample_images fixture
         response = client.get("/images")
@@ -535,7 +535,7 @@ class TestImageSystemEdgeCases:
         assert response.status_code == 200
         assert response.json() == {}
     
-    def test_product_numbers_endpoint_with_no_images(self, client):
+    def test_product_numbers_endpoint_with_no_images(self, client, battle_id):
         """Test product numbers endpoint when no images exist"""
         response = client.get("/images/product-numbers")
         
