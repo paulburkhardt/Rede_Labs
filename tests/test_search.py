@@ -90,6 +90,39 @@ class TestProductSearch:
         results = response.json()
         assert len(results) == 1
     
+    def test_search_matches_any_query_term(self, client, sample_seller, sample_images):
+        """Search should return results when any word in the query matches"""
+        client.post(
+            "/product/designer-towel",
+            json={
+                "name": "Designer Cotton Towel",
+                "short_description": "Luxurious bath towel with designer patterns",
+                "long_description": "Premium towel for spa-like experiences",
+                "price": 4599,
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
+        )
+        client.post(
+            "/product/basic-washcloth",
+            json={
+                "name": "Basic Washcloth",
+                "short_description": "Simple washcloth",
+                "long_description": "Plain washcloth for everyday use",
+                "price": 599,
+                "image_ids": [sample_images["01"][0].id],
+                "towel_variant": "budget"
+            },
+            headers={"Authorization": f"Bearer {sample_seller['auth_token']}"},
+        )
+
+        response = client.get("/search?q=designer bath towels")
+        assert response.status_code == 200
+        results = response.json()
+        assert len(results) == 1
+        assert results[0]["id"] == "designer-towel"
+    
     def test_search_returns_empty_for_no_matches(self, client, sample_product):
         """Test that search returns empty list when no matches"""
         response = client.get("/search?q=nonexistent-product-xyz")

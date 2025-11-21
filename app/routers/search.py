@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.database import get_db
 from app.models.product import Product
@@ -31,11 +32,18 @@ def search_products(
     
     # Apply search filter if q is not empty
     if q:
-        query = query.filter(
-            (Product.name.ilike(f"%{q}%")) |
-            (Product.short_description.ilike(f"%{q}%")) |
-            (Product.long_description.ilike(f"%{q}%"))
-        )
+        terms = [term.strip() for term in q.replace(",", " ").split() if term.strip()]
+        if not terms:
+            terms = [q]
+        search_clauses = []
+        for term in terms:
+            pattern = f"%{term}%"
+            search_clauses.append(or_(
+                Product.name.ilike(pattern),
+                Product.short_description.ilike(pattern),
+                Product.long_description.ilike(pattern),
+            ))
+        query = query.filter(or_(*search_clauses))
     
     # Order by ranking (lowest number = best rank = rank 1 comes first)
     # Then by bestseller status, then by name
