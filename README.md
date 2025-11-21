@@ -4,12 +4,11 @@ A FastAPI-based marketplace backend with PostgreSQL database for managing seller
 
 ## 📚 Documentation
 
-**→ Start here: [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete guide to all documentation
-
-### Quick Links
-- **[Green Agent Documentation](GREEN_AGENT_DOCUMENTATION.md)** - Comprehensive technical guide (15,000 words)- **[Proposal vs Implementation](PROPOSAL_VS_IMPLEMENTATION.md)** - What changed and why
-- **[Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)** - Visual system overview
-- **[DeepWiki](https://deepwiki.com/paulburkhardt/Rede_Labs)** - Interactive codebase documentation
+**→ [GREEN_AGENT_DOCUMENTATION.md](GREEN_AGENT_DOCUMENTATION.md)** - Complete technical documentation covering:
+- Task introduction and environment structure
+- Agent actions and evaluation methodology
+- Concrete examples and quantitative results
+- Visual diagrams and architecture details
 
 ## Project Structure
 
