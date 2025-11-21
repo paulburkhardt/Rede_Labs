@@ -1,6 +1,14 @@
-# Marketplace API
+# MarketArena: E-Commerce Marketplace Simulation
 
-A FastAPI-based marketplace backend with PostgreSQL database for managing sellers, products, and purchases.
+A FastAPI-based marketplace backend with PostgreSQL database for managing sellers, products, and purchases. This is the backend infrastructure for **MarketArena**, a benchmark that evaluates AI agents' ability to maximize profit through strategic product optimization in competitive e-commerce settings.
+
+## 📚 Documentation
+
+**→ [GREEN_AGENT_DOCUMENTATION.md](GREEN_AGENT_DOCUMENTATION.md)** - Complete technical documentation covering:
+- Task introduction and environment structure
+- Agent actions and evaluation methodology
+- Concrete examples and quantitative results
+- Visual diagrams and architecture details
 
 ## Project Structure
 
