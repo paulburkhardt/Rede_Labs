@@ -101,7 +101,7 @@ def search_products(query: str = "", auth_token: Optional[str] = None):
     
     if response.status_code == 200:
         products = response.json()
-        log_tool_response("search_products", True, f"Found {len(products)} products")
+        log_tool_response("search_products", True, f"Found {len(products)} products for query '{query}'")
         return {
             "success": True,
             "count": len(products),
@@ -129,7 +129,7 @@ def get_product_details(product_id: str, auth_token: Optional[str] = None):
         dict: Product details including name, description, price, seller info, image, etc.
     
     Example:
-        >>> get_product_details("towel-001")
+        >>> get_product_details("some-uuid")
     """
     log_tool_request("get_product_details", product_id=product_id, auth_token=auth_token)
     
@@ -138,7 +138,7 @@ def get_product_details(product_id: str, auth_token: Optional[str] = None):
     
     if response.status_code == 200:
         product = response.json()
-        log_tool_response("get_product_details", True, f"Retrieved {product.get('name', product_id)}")
+        log_tool_response("get_product_details", True, f"Retrieved {product.get('name', product_id)} for product_id '{product_id}'")
         return {
             "success": True,
             "product": product
@@ -172,7 +172,7 @@ def purchase_product(
     Example:
         >>> purchase_product(
         ...     auth_token="xyz789",
-        ...     product_id="towel-001"
+        ...     product_id="some-uuid"
         ... )
     """
     log_tool_request("purchase_product", product_id=product_id, purchased_at=purchased_at, auth_token=auth_token)
@@ -224,7 +224,7 @@ def compare_products(product_ids: list[str], auth_token: Optional[str] = None):
         dict: Comparison data for all requested products
     
     Example:
-        >>> compare_products(["towel-001", "towel-002", "soap-001"])
+        >>> compare_products(["some-uuid", "some-uuid-2"])
     """
     log_tool_request("compare_products", product_ids=product_ids, auth_token=auth_token)
     
