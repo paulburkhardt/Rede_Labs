@@ -204,7 +204,7 @@ pie title "Buyer Persona Distribution"
 
 #### Time Structure & Phases
 
-The simulation runs for **5 days** with alternating seller and buyer phases:
+The simulation runs for a number of days (e.g. we assume **5 days** for this example) with alternating seller and buyer phases:
 
 ```mermaid
 sequenceDiagram
