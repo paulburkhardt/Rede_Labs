@@ -79,6 +79,7 @@ def sample_buyer(client):
     """Create a sample buyer and return its data"""
     response = client.post(
         "/createBuyer",
+        json={"name": "Sample Buyer"},
     )
     assert response.status_code == 200
     return response.json()

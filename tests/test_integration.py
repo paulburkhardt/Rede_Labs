@@ -72,10 +72,12 @@ class TestAuthenticationSecurity:
         """Test that buyer tokens are properly isolated"""
         buyer1 = client.post(
             "/createBuyer",
+            json={"name": "Integration Buyer 1"},
         ).json()
         
         buyer2 = client.post(
             "/createBuyer",
+            json={"name": "Integration Buyer 2"},
         ).json()
         
         # Both should be able to purchase
@@ -392,6 +394,7 @@ class TestSalesStats:
         for i in range(3):
             buyer = client.post(
                 "/createBuyer",
+                json={"name": f"Stats Buyer {i+1}"},
             ).json()
             
             # Each buyer purchases product 0
@@ -403,6 +406,7 @@ class TestSalesStats:
         # One buyer purchases product 1
         buyer = client.post(
             "/createBuyer",
+            json={"name": "Stats Buyer Extra"},
         ).json()
         client.post(
             "/buy/prod-1",
@@ -459,6 +463,7 @@ class TestSalesStats:
         # Create a buyer
         buyer = client.post(
             "/createBuyer",
+            json={"name": "Seller Stats Buyer"},
         ).json()
         
         # Buyer purchases from both sellers
@@ -692,6 +697,7 @@ class TestLeaderboard:
         # Create a buyer
         buyer = client.post(
             "/createBuyer",
+            json={"name": "Leaderboard Buyer"},
         ).json()
         
         # Seller 0: 2 products at $10 and $20 = $30 total
@@ -822,6 +828,7 @@ class TestLeaderboard:
         for i in range(3):
             buyer = client.post(
                 "/createBuyer",
+                json={"name": f"Popular Buyer {i+1}"},
             ).json()
             client.post(
                 "/buy/popular-prod",
@@ -880,6 +887,7 @@ class TestLeaderboard:
         # Only seller 1 gets a purchase
         buyer = client.post(
             "/createBuyer",
+            json={"name": "Single Purchase Buyer"},
         ).json()
         set_phase(Phase.BUYER_SHOPPING)
         client.post(
@@ -958,7 +966,10 @@ class TestLeaderboard:
         """Test leaderboard with various price points"""
         # Create seller
         seller = client.post("/createSeller").json()
-        buyer = client.post("/createBuyer").json()
+        buyer = client.post(
+            "/createBuyer",
+            json={"name": "Mixed Price Buyer"},
+        ).json()
         
         # Create products with different prices (excluding 0 since it's not allowed)
         prices = [1, 99, 1000, 9999, 100000]  # $0.01, $0.99, $10, $99.99, $1000
@@ -1049,7 +1060,10 @@ class TestLeaderboard:
         """Leaderboard should track each round and overall winners."""
         seller1 = client.post("/createSeller").json()
         seller2 = client.post("/createSeller").json()
-        buyer = client.post("/createBuyer").json()
+        buyer = client.post(
+            "/createBuyer",
+            json={"name": "Rounds Buyer"},
+        ).json()
 
         client.post(
             "/product/seller1-prod",

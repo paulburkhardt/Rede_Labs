@@ -177,10 +177,12 @@ class TestPurchaseCreation:
         # Create two buyers
         buyer1 = client.post(
             "/createBuyer",
+            json={"name": "Buyer Alpha"},
         ).json()
         
         buyer2 = client.post(
             "/createBuyer",
+            json={"name": "Buyer Beta"},
         ).json()
         
         # Both purchase the same product
@@ -271,6 +273,7 @@ class TestPurchaseWorkflow:
         # Step 5: Create buyer
         buyer = client.post(
             "/createBuyer",
+            json={"name": "Workflow Buyer"},
         ).json()
         
         assert "auth_token" in buyer

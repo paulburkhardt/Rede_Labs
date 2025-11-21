@@ -32,10 +32,49 @@ API_URL = os.getenv("MARKETPLACE_API_URL", "http://localhost:8000")
 # This allows buyer agents to retrieve battle context stored by the green agent
 _buyer_counter = 0
 _last_battle_id = None
+_fallback_agent_name = None
+_buyer_identity = {"id": None, "name": None, "token": None}
 
-def _get_battle_context_from_db():
+
+def _update_buyer_identity(auth_token: Optional[str]):
+    """Fetch and cache the buyer identity using their auth token."""
+    global _buyer_identity
+
+    if not auth_token:
+        return None
+
+    cached_token = _buyer_identity.get("token")
+    if cached_token == auth_token and _buyer_identity.get("name"):
+        return _buyer_identity
+
+    try:
+        response = requests.get(
+            f"{API_URL}/buyer/me",
+            headers=get_auth_header(auth_token)
+        )
+        if response.status_code == 200:
+            data = response.json()
+            _buyer_identity = {
+                "id": data.get("id"),
+                "name": data.get("name"),
+                "token": auth_token,
+            }
+            return _buyer_identity
+        else:
+            print(f"⚠️  Buyer agent: Failed to fetch profile - Status {response.status_code}")
+    except Exception as e:
+        print(f"⚠️  Buyer agent: Exception fetching buyer profile: {e}")
+    
+    return None
+
+
+def _get_battle_context_from_db(auth_token: Optional[str] = None):
     """Retrieve battle context from database metadata and update if battle_id changed."""
-    global _buyer_counter, _last_battle_id
+    global _buyer_counter, _last_battle_id, _fallback_agent_name
+    
+    buyer_identity = _update_buyer_identity(auth_token) if auth_token else None
+    if not buyer_identity and _buyer_identity.get("name"):
+        buyer_identity = _buyer_identity
     
     try:
         # Retrieve battle metadata from the API
@@ -46,18 +85,39 @@ def _get_battle_context_from_db():
             backend_url = metadata.get("backend_url")
             
             if battle_id and backend_url:
-                # Check if this is a new battle
-                if battle_id != _last_battle_id:
+                # Track whether battle context should be refreshed
+                is_new_battle = battle_id != _last_battle_id
+                if is_new_battle:
                     _buyer_counter += 1
-                    agent_name = f"buyer{_buyer_counter}"
+                    _last_battle_id = battle_id
+                    _fallback_agent_name = None
+                
+                if _fallback_agent_name is None:
+                    # Ensure we always have a fallback agent name
+                    if _buyer_counter == 0:
+                        _buyer_counter = 1
+                    _fallback_agent_name = f"buyer{_buyer_counter}"
+                
+                desired_name = buyer_identity.get("name") if buyer_identity else None
+                if not desired_name:
+                    desired_name = _fallback_agent_name
+                
+                existing_context = battle_logger.get_battle_context()
+                should_update_context = (
+                    existing_context is None
+                    or is_new_battle
+                    or (existing_context and existing_context.backend_url != backend_url)
+                    or (desired_name and existing_context and existing_context.agent_name != desired_name)
+                )
+                
+                if should_update_context:
                     context = BattleContext(
                         battle_id=battle_id,
                         backend_url=backend_url,
-                        agent_name=agent_name
+                        agent_name=desired_name
                     )
                     battle_logger.set_battle_context(context)
-                    _last_battle_id = battle_id
-                    print(f"✅ Buyer agent '{agent_name}': Battle context initialized from database")
+                    print(f"✅ Buyer agent '{desired_name}': Battle context initialized from database")
                     print(f"   battle_id={battle_id}, backend_url={backend_url}")
                 return True
             else:
@@ -91,7 +151,7 @@ def search_products(query: str = "", auth_token: Optional[str] = None):
         List of products matching the search criteria
     """
     # Lazy initialization - try to get battle context if not already initialized
-    _get_battle_context_from_db()
+    _get_battle_context_from_db(auth_token)
     
     log_tool_request("search_products", query=query, auth_token=auth_token)
     
@@ -131,6 +191,7 @@ def get_product_details(product_id: str, auth_token: Optional[str] = None):
     Example:
         >>> get_product_details("some-uuid")
     """
+    _get_battle_context_from_db(auth_token)
     log_tool_request("get_product_details", product_id=product_id, auth_token=auth_token)
     
     headers = get_auth_header(auth_token) if auth_token else {}
@@ -175,6 +236,7 @@ def purchase_product(
         ...     product_id="some-uuid"
         ... )
     """
+    _get_battle_context_from_db(auth_token)
     log_tool_request("purchase_product", product_id=product_id, purchased_at=purchased_at, auth_token=auth_token)
     
     payload = {}
@@ -226,6 +288,7 @@ def compare_products(product_ids: list[str], auth_token: Optional[str] = None):
     Example:
         >>> compare_products(["some-uuid", "some-uuid-2"])
     """
+    _get_battle_context_from_db(auth_token)
     log_tool_request("compare_products", product_ids=product_ids, auth_token=auth_token)
     
     products = []

@@ -55,6 +55,7 @@ class Buyer(NamedTuple):
     id: str
     url: str
     token: str
+    name: str = ""
 
 # If you change this, also change it in app/services/phase_manager.py
 class Phase(str, Enum):
@@ -498,6 +499,8 @@ async def create_buyer():
     for buyer_agent in buyer_agents:
         agent_host = buyer_agent.get("agent_host")
         agent_port = buyer_agent.get("agent_port")
+        configured_name = buyer_agent.get("name")
+        buyer_display_name = configured_name or f"Buyer {len(buyers) + 1}"
 
         if not agent_port:
             raise Exception(
@@ -507,6 +510,7 @@ async def create_buyer():
         # Create buyer via API
         response = requests.post(
             api_url + "/createBuyer",
+            json={"name": buyer_display_name},
             headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
         )
 
@@ -514,26 +518,37 @@ async def create_buyer():
             raise Exception(f"Failed to create buyer: {response.text}")
 
         buyer_data = response.json()
+        stored_name = buyer_data.get("name", buyer_display_name)
         # Store buyer with URL constructed from agent configuration
         # todo: is that a problem that the buyer has to run local (because of the http://)?
         url = f"http://{agent_host}:{agent_port}"
         buyer_id = buyer_data.get("id")
         buyers.append(
-            Buyer(id=buyer_id, url=url, token=buyer_data.get("auth_token"))
+            Buyer(
+                id=buyer_id,
+                url=url,
+                token=buyer_data.get("auth_token"),
+                name=stored_name,
+            )
         )
         
-        message = f"🛒 Created buyer {buyer_id}"
+        message = f"🛒 Created buyer {buyer_id} ({stored_name})"
         print(message)
         if battle_context:
-            record_battle_event(battle_context, f"Created buyer {buyer_id}")
+            record_battle_event(battle_context, f"Created buyer {buyer_id} ({stored_name})")
 
 
 async def create_participants(no_participants: int, route: str):
     for i in range(no_participants):
+        request_kwargs = {
+            "headers": {"X-Admin-Key": admin_api_key} if admin_api_key else None,
+        }
+        if route == "/createBuyer":
+            request_kwargs["json"] = {"name": f"Buyer {len(buyers) + 1}"}
         # todo: add super admin auth token
         response = requests.post(
             api_url + route,
-            headers={"X-Admin-Key": admin_api_key} if admin_api_key else None,
+            **request_kwargs,
         )
         if response.status_code != 200:
             raise Exception(f"Failed to create seller: {response.text}")
