@@ -14,15 +14,20 @@ if str(agents_dir) not in sys.path:
     sys.path.insert(0, str(agents_dir))
 
 import requests
-import agentbeats as ab
 from typing import Optional
 
 # Import battle logger - this will be cached by Python's import system
 # ensuring all modules share the same instance
 import battle_logger
-from agentbeats.logging import BattleContext
+from battle_logger import BattleContext
+
 log_tool_request = battle_logger.log_tool_request
 log_tool_response = battle_logger.log_tool_response
+
+# Define a simple tool decorator since we are not using agentbeats CLI
+def tool(func):
+    """Decorator to mark a function as a tool."""
+    return func
 
 # API configuration
 API_URL = os.getenv("MARKETPLACE_API_URL", "http://localhost:8000")
@@ -138,7 +143,7 @@ def get_auth_header(auth_token: str) -> dict:
     return {"Authorization": f"Bearer {auth_token}"}
 
 
-@ab.tool
+@tool
 def search_products(query: str = "", auth_token: Optional[str] = None):
     """
     Search for products in the marketplace.
@@ -176,7 +181,7 @@ def search_products(query: str = "", auth_token: Optional[str] = None):
         }
 
 
-@ab.tool
+@tool
 def get_product_details(product_id: str, auth_token: Optional[str] = None):
     """
     Get detailed information about a specific product.
@@ -213,7 +218,7 @@ def get_product_details(product_id: str, auth_token: Optional[str] = None):
         }
 
 
-@ab.tool
+@tool
 def purchase_product(
     auth_token: str,
     product_id: str,
@@ -273,7 +278,7 @@ def purchase_product(
 
 
 
-@ab.tool
+@tool
 def compare_products(product_ids: list[str], auth_token: Optional[str] = None):
     """
     Compare multiple products side by side.

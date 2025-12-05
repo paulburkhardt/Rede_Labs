@@ -435,15 +435,24 @@ def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
     else:
         print(f"Warning: .env file not found at {env_file}")
     
-    # Find agentbeats - prefer venv version
-    agentbeats_cmd = "agentbeats"
-    venv_agentbeats = PROJECT_ROOT / "venv" / "bin" / "agentbeats"
-    dot_venv_agentbeats = PROJECT_ROOT / ".venv" / "bin" / "agentbeats"
+    # Find agentbeats - need the OLD version that has load_scenario
+    # The .venv version is the newer earthshaker-based one with different commands
+    # The old agentbeats is installed separately at agentbeats-1
+    from pathlib import Path
+    import shutil
     
-    if venv_agentbeats.exists():
-        agentbeats_cmd = str(venv_agentbeats)
-    elif dot_venv_agentbeats.exists():
-        agentbeats_cmd = str(dot_venv_agentbeats)
+    # First try the known global installation path
+    global_agentbeats = Path.home() / "Github" / "agentbeats-1" / "venv" / "bin" / "agentbeats"
+    
+    if global_agentbeats.exists():
+        agentbeats_cmd = str(global_agentbeats)
+    elif shutil.which("agentbeats"):
+        # Check if the global agentbeats has load_scenario
+        agentbeats_cmd = shutil.which("agentbeats")
+    else:
+        print("Error: Could not find agentbeats with load_scenario support!")
+        print("Please install the older agentbeats version that supports load_scenario")
+        sys.exit(1)
     
     scenario_dir = scenario_path.parent
 

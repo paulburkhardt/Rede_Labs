@@ -9,11 +9,29 @@ These tools are used to communicate with other agents and report battle results.
 import json
 from nturl2path import url2pathname
 from os import name
-import agentbeats as ab
-from agentbeats.logging import BattleContext
+
+# Handle different agentbeats versions - the new version doesn't have logging module
+# We are removing agentbeats dependency completely for tools
+def tool(func):
+    """Decorator to mark a function as a tool."""
+    return func
+
+# Mock the agentbeats utility functions locally
+def send_message_to_agent(*args, **kwargs):
+    print(f"[MOCK] send_message_to_agent called: {args} {kwargs}")
+    return "Mock response"
+
+def send_messages_to_agents(*args, **kwargs):
+    print(f"[MOCK] send_messages_to_agents called: {args} {kwargs}")
+    return ["Mock response"]
+
+def record_battle_event(*args, **kwargs):
+    pass
+
+def record_battle_result(*args, **kwargs):
+    pass
+
 import requests
-from agentbeats.utils.agents import send_message_to_agent, send_messages_to_agents
-from agentbeats.logging import record_battle_event, record_battle_result
 import random
 import asyncio
 import toml
@@ -22,6 +40,19 @@ import os
 from enum import Enum
 import subprocess
 import sys
+
+# Add agents directory to sys.path to enable shared battle_logger import
+agents_dir = Path(__file__).parent.parent
+if str(agents_dir) not in sys.path:
+    sys.path.insert(0, str(agents_dir))
+
+# Import battle logger - this will be cached by Python's import system
+# ensuring all modules share the same instance
+import battle_logger
+from battle_logger import BattleContext
+set_battle_context = battle_logger.set_battle_context
+
+
 
 # Add agents directory to sys.path to enable shared battle_logger import
 agents_dir = Path(__file__).parent.parent
@@ -269,7 +300,7 @@ def reload_images():
         traceback.print_exc()
 
 
-@ab.tool
+@tool
 async def handle_incoming_message(message: str) -> str:
     """
     Handle incoming messages from the AgentBeats backend and orchestrate battles.

@@ -4,10 +4,19 @@ Battle Logger Utility
 Provides centralized logging for battle events across all agent tools.
 This module maintains a global battle context that can be accessed by
 buyer and seller shared tools to log their actions.
+
+NOTE: This is a standalone implementation that does NOT depend on agentbeats.
 """
 
-from typing import Optional
-from agentbeats.logging import BattleContext, record_battle_event as _record_battle_event
+from typing import Optional, Any
+import datetime
+
+class BattleContext:
+    """Standalone battle context."""
+    def __init__(self, battle_id: str, backend_url: str, agent_name: str):
+        self.battle_id = battle_id
+        self.backend_url = backend_url
+        self.agent_name = agent_name
 
 _battle_context: Optional[BattleContext] = None
 
@@ -42,7 +51,10 @@ def log_battle_event(message: str):
         message: The event message to log
     """
     if _battle_context:
-        _record_battle_event(_battle_context, message)
+        # Just print to stdout - main.py captures this and prefixes it
+        # Format: [BATTLE_EVENT] <message>
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        print(f"[BATTLE] {message}")
 
 
 def log_tool_request(tool_name: str, **kwargs):
