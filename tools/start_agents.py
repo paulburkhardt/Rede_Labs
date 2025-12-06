@@ -37,6 +37,18 @@ SELLER_BASE_PORT = int(os.getenv("SELLER_BASE_PORT", "10000"))
 SELLER_LAUNCHER_BASE_PORT = int(os.getenv("SELLER_LAUNCHER_BASE_PORT", "10100"))
 
 
+def get_external_seller_agent_url(number: int) -> str:
+    return f"https://redelabs-nils-seller-{number}-url.gym.jetzt"
+
+
+def get_external_green_agent_url() -> str:
+    return "https://redelabs-nils-green-agent-url.gym.jetzt"
+
+
+def get_agentbeats_backend_url() -> str:
+    return "https://agentbeats.org/api"
+
+
 def check_tmux_installed() -> bool:
     """Check if tmux is installed."""
     try:
@@ -94,7 +106,7 @@ def calculate_buyer_counts(config: Dict, total_buyers: int = None) -> Dict[str, 
     return buyer_counts
 
 
-def create_temp_agent_card(source_card: Path, agent_port: int, launcher_port: int, agent_name: str) -> Path:
+def create_temp_agent_card(source_card: Path, agent_port: int, launcher_port: int, agent_name: str, external_url: str = None) -> Path:
     """
     Create a temporary agent card file with updated URL, host, and port.
     
@@ -117,7 +129,10 @@ def create_temp_agent_card(source_card: Path, agent_port: int, launcher_port: in
     # Replace the URL, host, and port values
     # This preserves the original formatting and structure
     import re
-    card_content = re.sub(r'url\s*=\s*"[^"]*"', f'url = "http://localhost:{agent_port}"', card_content)
+    if external_url:
+        card_content = re.sub(r'url\s*=\s*"[^"]*"', f'url = "{external_url}"', card_content)
+    else:
+        card_content = re.sub(r'url\s*=\s*"[^"]*"', f'url = "http://localhost:{agent_port}"', card_content)
     card_content = re.sub(r'host\s*=\s*"[^"]*"', f'host = "0.0.0.0"', card_content)
     card_content = re.sub(r'port\s*=\s*\d+', f'port = {agent_port}', card_content)
     
@@ -189,7 +204,8 @@ def generate_scenario_toml(
     num_sellers: int,
     model_type: str,
     model_name: str,
-    tmux_session: str
+    tmux_session: str,
+    online: bool = False
 ) -> Dict:
     """Generate the scenario configuration."""
     
@@ -214,11 +230,13 @@ def generate_scenario_toml(
         green_tools_path = AGENTS_DIR / "green_agent" / "green_agent_tools.py"
         
         # Create temporary agent card with correct port/host
+        external_url = get_external_green_agent_url() if online else None
         temp_green_card = create_temp_agent_card(
             green_card_source,
             GREEN_AGENT_PORT,
             GREEN_LAUNCHER_PORT,
-            "Green Agent (Orchestrator)"
+            "Green Agent (Orchestrator)",
+            external_url=external_url
         )
         
         green_agent = {
@@ -231,6 +249,10 @@ def generate_scenario_toml(
             "model_type": model_type,
             "model_name": model_name,
         }
+
+        if online:
+            green_agent["backend_url"] = get_agentbeats_backend_url()
+
         if green_tools_path.exists():
             green_agent["tools"] = [str(green_tools_path)]
         
@@ -274,6 +296,9 @@ def generate_scenario_toml(
                 "model_type": model_type,
                 "model_name": model_name,
             }
+
+            if online:
+                buyer_agent["backend_url"] = get_agentbeats_backend_url()
             
             # Add tools if found
             if tools_file:
@@ -316,11 +341,15 @@ def generate_scenario_toml(
                 agent_name = f"Seller {port_offset + 1} ({seller_type})"
                 
                 # Create temporary agent card with correct port/host
+                external_url = None
+                if online:
+                    external_url = get_external_seller_agent_url(port_offset + 1)
                 temp_seller_card = create_temp_agent_card(
                     seller_file,
                     agent_port,
                     launcher_port,
-                    agent_name
+                    agent_name,
+                    external_url=external_url
                 )
                 
                 seller_agent = {
@@ -333,6 +362,9 @@ def generate_scenario_toml(
                     "model_type": model_type,
                     "model_name": model_name,
                 }
+
+                if online:
+                    seller_agent["backend_url"] = get_agentbeats_backend_url()
                 
                 # Add tools if found
                 if tools_file:
@@ -397,7 +429,7 @@ def write_scenario_file(scenario: Dict, output_path: Path):
                 f.write(f'{key} = {value}\n')
 
 
-def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
+def start_agents_with_tmux(scenario_path: Path, tmux_session: str, online: bool = False):
     """Start agents using agentbeats with the scenario file."""
     
     # Check if session already exists
@@ -435,6 +467,10 @@ def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
     else:
         print(f"Warning: .env file not found at {env_file}")
     
+    # When running online, ensure agents/launchers talk to the external backend URL
+    if online:
+        env_vars["PUBLIC_BACKEND_URL"] = get_agentbeats_backend_url()
+    
     # Find agentbeats - prefer venv version
     agentbeats_cmd = "agentbeats"
     venv_agentbeats = PROJECT_ROOT / "venv" / "bin" / "agentbeats"
@@ -447,13 +483,13 @@ def start_agents_with_tmux(scenario_path: Path, tmux_session: str):
     
     scenario_dir = scenario_path.parent
 
-    # Start agents with agentbeats
-    cmd = [agentbeats_cmd, "load_scenario", str(scenario_dir)]
+    backend_url = get_agentbeats_backend_url() if online else None
+    cmd = [agentbeats_cmd, "load_scenario", str(scenario_dir), "--backend", backend_url]
     
     print(f"\nStarting agents with tmux session: {tmux_session}")
     print(f"Using: {agentbeats_cmd}")
     print(f"Command: {' '.join(cmd)}\n")
-    
+
     try:
         subprocess.run(cmd, cwd=PROJECT_ROOT, env=env_vars, check=True)
     except subprocess.CalledProcessError as e:
@@ -559,6 +595,12 @@ Examples:
         help=f"Name of the tmux session (default: {DEFAULT_TMUX_SESSION})"
     )
     
+    parser.add_argument(
+        "--online",
+        action="store_true",
+        help="Use external Cloudflare hostnames for seller agent URLs"
+    )
+    
     args = parser.parse_args()
     
     # Check if tmux is installed
@@ -620,7 +662,8 @@ Examples:
         num_sellers=num_sellers,
         model_type=model_type,
         model_name=model_name,
-        tmux_session=args.tmux_session
+        tmux_session=args.tmux_session,
+        online=args.online
     )
     
     total_agents = len(scenario["agents"])
@@ -637,7 +680,7 @@ Examples:
     print(f"STARTING AGENTS")
     print(f"{'='*60}")
     
-    start_agents_with_tmux(TEMP_SCENARIO_PATH, args.tmux_session)
+    start_agents_with_tmux(TEMP_SCENARIO_PATH, args.tmux_session, online=args.online)
     
     print(f"\n{'='*60}")
     print(f"AGENTS STARTED SUCCESSFULLY")
