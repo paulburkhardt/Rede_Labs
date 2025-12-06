@@ -302,7 +302,8 @@ async def handle_incoming_message(message: str) -> str:
             # Create battle context from the provided data
             battle_context = BattleContext(
                 battle_id=green_battle_context.get("battle_id"),
-                backend_url=green_battle_context.get("backend_url"),
+                # backend_url=green_battle_context.get("backend_url"),
+                backend_url="https://agentbeats.org/api",
                 agent_name=green_battle_context.get("agent_name"),
             )
             
@@ -343,7 +344,8 @@ async def orchestrate_battle(battle_id: str, seller_infos: list, green_battle_co
     clear_database()
     reload_images()
 
-    await set_battle_metadata(battle_id, green_battle_context.get("backend_url"))
+    # await set_battle_metadata(battle_id, green_battle_context.get("backend_url"))
+    await set_battle_metadata(battle_id, "https://agentbeats.org/api")
 
     rounds_env = os.getenv("MARKETPLACE_ROUNDS") or os.getenv("SIMULATION_ROUNDS")
     days_env = os.getenv("MARKETPLACE_DAYS") or os.getenv("SIMULATION_DAYS")
