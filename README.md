@@ -170,6 +170,16 @@ You can kill the agents with:
 uv run tools/kill_agents.py
 ```
 
+## Deployment
+
+To deploy this project so that you can use the agents on https://agentbeats.org, you need to:
+
+1. Create a VM (we used Hetzner)
+2. Follow setup instructions from above. Use for `agentbeats` in the steps above not https://github.com/agentbeats/agentbeats.git but https://github.com/nilsreder/agentbeats.git (a fork that fixes the issues that AgentBeats always uses http://localhost:9000 as backend_url)
+3. Install `cloudflared`
+4. Get `~/.cloudflared/e12b9afa-5ce5-424f-9181-04a4db4746cf.json` from @nilsreichardt
+5. Run `tmux new -s cloudflare` and then `cd Rede_Labs && cloudflared --config ./cloudflared.yml tunnel run redelabs-nils`, then `ctrl + b` and `d`
+
 ## Development
 
 ### Running Tests
