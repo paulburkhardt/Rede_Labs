@@ -32,4 +32,4 @@ ingress:
 # cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-2-launcher.gym.jetzt
 # cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-3-url.gym.jetzt
 # cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-3-launcher.gym.jetzt
-# cloudflared tunnel run redelabs-nils --config ./cloudflared.yml
+# cloudflared --config ./cloudflared.yml tunnel run redelabs-nils
