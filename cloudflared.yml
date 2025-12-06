@@ -1,0 +1,35 @@
+tunnel: redelabs-nils
+credentials-file: ~/.cloudflared/e12b9afa-5ce5-424f-9181-04a4db4746cf.json
+
+ingress:
+  - hostname: redelabs-nils-green-agent-url.gym.jetzt
+    service: http://localhost:9110
+  - hostname: redelabs-nils-green-agent-launcher.gym.jetzt
+    service: http://localhost:9115
+  - hostname: redelabs-nils-api.gym.jetzt
+    service: http://localhost:8000
+  - hostname: redelabs-nils-seller-1-url.gym.jetzt
+    service: http://localhost:10000
+  - hostname: redelabs-nils-seller-1-launcher.gym.jetzt
+    service: http://localhost:10100
+  - hostname: redelabs-nils-seller-2-url.gym.jetzt
+    service: http://localhost:10001
+  - hostname: redelabs-nils-seller-2-launcher.gym.jetzt
+    service: http://localhost:10101
+  - hostname: redelabs-nils-seller-3-url.gym.jetzt
+    service: http://localhost:10002
+  - hostname: redelabs-nils-seller-3-launcher.gym.jetzt
+    service: http://localhost:10102
+  - service: http_status:404
+
+# commands to run:
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-green-agent-url.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-green-agent-launcher.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-api.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-1-url.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-1-launcher.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-2-url.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-2-launcher.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-3-url.gym.jetzt
+# cloudflared tunnel route dns redelabs-nils redelabs-nils-seller-3-launcher.gym.jetzt
+# cloudflared tunnel run redelabs-nils --config ./cloudflared.yml
