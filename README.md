@@ -116,10 +116,32 @@ source ~/.zshrc
 #### 6. Start Buyer and Seller Agents (White Agents)
 
 ```bash
-uv run tools/start_agents.py --num-buyers 10 --num-sellers 10
+# Start a full simulation with 10 buyers and 3 sellers (one of each type)
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 3
 ```
 
-This will start 10 buyer and 10 seller agents. The main task of other teams will be to implement their own seller agent. However, they can use our basic seller agent as reference.
+This will start 10 buyer agents and 3 seller agents (Budget King, Dynamic Optimizer/Strategic Optimizer, Premium Player).
+
+#### Testing the Strategic Optimizer White Agent
+
+```bash
+# Test Strategic Optimizer vs all baselines
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 3
+
+# Test only the Strategic Optimizer
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 1 --sellers dynamic_optimizer
+
+# Test Strategic Optimizer vs Budget King
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 2 --sellers dynamic_optimizer budget_king
+
+# Test with GPT-5.1 for better performance
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 3 --model-name gpt-5.1
+```
+
+**Available seller types:**
+- `dynamic_optimizer` - Strategic Optimizer (our enhanced white agent)
+- `budget_king` - Baseline: always prices lowest
+- `premium_player` - Baseline: always prices highest
 
 In `tools/scenario.toml` are the ports and hosts of the agents. Expand the following section to see the default ports and hosts.
 
@@ -169,6 +191,17 @@ You can kill the agents with:
 ```bash
 uv run tools/kill_agents.py
 ```
+
+## Deployment
+
+To deploy this project so that you can use the agents on https://agentbeats.org, you need to:
+
+1. Create a VM (we used Hetzner)
+2. Follow setup instructions from above. Use for `agentbeats` in the steps above not https://github.com/agentbeats/agentbeats.git but https://github.com/nilsreder/agentbeats.git (a fork that fixes the issues that AgentBeats always uses http://localhost:9000 as backend_url). Also use `online` branch of this repository.
+3. Use `uv run tools/start_agents.py --num-buyers 5 --num-sellers 3 --online`
+4. Install `cloudflared`
+5. Get `~/.cloudflared/e12b9afa-5ce5-424f-9181-04a4db4746cf.json` from @nilsreichardt
+6. Run `tmux new -s cloudflare` and then `cd Rede_Labs && cloudflared --config ./cloudflared.yml tunnel run redelabs-nils`, then `ctrl + b` and `d`
 
 ## Development
 

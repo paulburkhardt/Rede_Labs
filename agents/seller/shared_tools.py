@@ -507,6 +507,167 @@ def search_products(query: str = ""):
         }
 
 
+@ab.tool
+def get_market_analysis(auth_token: str):
+    """
+    Get comprehensive market analysis including competitor prices, market position, and strategic insights.
+    
+    This is a HIGH-VALUE tool that combines search_products + get_sales_stats into actionable intelligence.
+    Use this FIRST every turn to understand the competitive landscape.
+    
+    Returns:
+        dict: Market analysis containing:
+            - competitor_count: Number of other products in market
+            - price_stats: min, max, avg, median prices
+            - my_price: Your current price (if you have a product)
+            - my_sales: Your total sales count
+            - my_revenue: Your total revenue
+            - my_position: "cheapest", "mid", or "premium" relative to market
+            - price_gap: Largest gap in market pricing (opportunity!)
+            - competitors: List of competitor products with prices
+            - recommendation: Strategic recommendation based on analysis
+    
+    Example:
+        >>> get_market_analysis(auth_token="abc123")
+    """
+    log_tool_request("get_market_analysis", auth_token=auth_token)
+    
+    analysis = {
+        "success": True,
+        "competitor_count": 0,
+        "price_stats": {"min": 0, "max": 0, "avg": 0, "median": 0},
+        "my_price": None,
+        "my_sales": 0,
+        "my_revenue": 0,
+        "my_profit": 0,
+        "my_position": "unknown",
+        "price_gap": None,
+        "competitors": [],
+        "recommendation": ""
+    }
+    
+    # Get all products
+    search_response = requests.get(f"{API_URL}/search?q=")
+    if search_response.status_code != 200:
+        log_tool_response("get_market_analysis", False, "Failed to search products")
+        return {"success": False, "error": "Failed to search products"}
+    
+    all_products = search_response.json()
+    
+    # Get my sales stats
+    sales_response = requests.get(
+        f"{API_URL}/getSalesStats",
+        headers={"Authorization": f"Bearer {auth_token}"}
+    )
+    
+    my_seller_id = None
+    if sales_response.status_code == 200:
+        sales_data = sales_response.json()
+        analysis["my_sales"] = sales_data.get("total_sales", 0)
+        analysis["my_revenue"] = sales_data.get("total_revenue_cents", 0) / 100
+        analysis["my_profit"] = sales_data.get("total_profit_cents", 0) / 100 if "total_profit_cents" in sales_data else 0
+        my_seller_id = sales_data.get("seller_id")
+    
+    # Separate my products from competitors
+    my_products = []
+    competitor_products = []
+    
+    for product in all_products:
+        if product.get("seller_id") == my_seller_id:
+            my_products.append(product)
+        else:
+            competitor_products.append(product)
+    
+    analysis["competitor_count"] = len(competitor_products)
+    
+    # Calculate price statistics from competitors
+    if competitor_products:
+        prices = [p.get("price", 0) / 100 for p in competitor_products]  # Convert cents to dollars
+        prices.sort()
+        
+        analysis["price_stats"] = {
+            "min": round(min(prices), 2),
+            "max": round(max(prices), 2),
+            "avg": round(sum(prices) / len(prices), 2),
+            "median": round(prices[len(prices) // 2], 2)
+        }
+        
+        # Find largest price gap (opportunity)
+        if len(prices) > 1:
+            max_gap = 0
+            gap_position = None
+            for i in range(len(prices) - 1):
+                gap = prices[i + 1] - prices[i]
+                if gap > max_gap:
+                    max_gap = gap
+                    gap_position = (prices[i] + prices[i + 1]) / 2
+            if max_gap > 5:  # Only report significant gaps (>$5)
+                analysis["price_gap"] = {
+                    "size": round(max_gap, 2),
+                    "optimal_price": round(gap_position, 2)
+                }
+        
+        # Store competitor info (limited details for token efficiency)
+        analysis["competitors"] = [
+            {
+                "name": p.get("name", "Unknown")[:30],
+                "price": p.get("price", 0) / 100,
+                "seller": p.get("seller_name", "Unknown")
+            }
+            for p in competitor_products
+        ]
+    
+    # Determine my position and get my price
+    if my_products:
+        my_price = my_products[0].get("price", 0) / 100
+        analysis["my_price"] = my_price
+        
+        if competitor_products:
+            prices = [p.get("price", 0) / 100 for p in competitor_products]
+            if my_price <= min(prices):
+                analysis["my_position"] = "cheapest"
+            elif my_price >= max(prices):
+                analysis["my_position"] = "premium"
+            else:
+                analysis["my_position"] = "mid"
+    
+    # Generate strategic recommendation
+    rec = []
+    if analysis["my_price"] is None:
+        rec.append("CREATE PRODUCT: No product yet. Target mid-market price around ${:.2f}".format(
+            analysis["price_stats"]["avg"] if analysis["price_stats"]["avg"] > 0 else 29.99
+        ))
+    elif analysis["my_sales"] == 0:
+        if analysis["my_position"] == "premium":
+            rec.append("DROP PRICE: Zero sales at premium position. Lower price by 15-20%.")
+        elif analysis["my_position"] == "cheapest":
+            rec.append("RAISE PRICE + IMPROVE DESC: Zero sales despite cheapest = quality perception issue.")
+        else:
+            rec.append("DROP PRICE 10%: Zero sales at mid position. Need to be more competitive.")
+    elif analysis["my_sales"] < 3:
+        if analysis["my_position"] == "cheapest":
+            rec.append("RAISE PRICE: Low sales at cheapest = underpriced. Raise 10-15%.")
+        else:
+            rec.append("OPTIMIZE: Low sales. Consider small price drop or description improvement.")
+    else:
+        if analysis["my_position"] != "premium":
+            rec.append("RAISE PRICE: Good sales! Increase price 10-15% to improve margins.")
+        else:
+            rec.append("HOLD: Premium position with good sales. Maximize profit.")
+    
+    if analysis["price_gap"]:
+        rec.append("GAP OPPORTUNITY: ${:.2f} gap in market. Consider pricing at ${:.2f}".format(
+            analysis["price_gap"]["size"], analysis["price_gap"]["optimal_price"]
+        ))
+    
+    analysis["recommendation"] = " | ".join(rec)
+    
+    log_tool_response("get_market_analysis", True, 
+                      f"{analysis['competitor_count']} competitors, my sales={analysis['my_sales']}, position={analysis['my_position']}")
+    
+    return analysis
+
+
 # Export all tools
 __all__ = [
     "create_product",
@@ -514,6 +675,7 @@ __all__ = [
     "get_sales_stats",
     "get_product_details",
     "search_products",
+    "get_market_analysis",
     "get_available_images",
     "get_images_by_product_number",
     "get_available_product_numbers",

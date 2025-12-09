@@ -202,6 +202,7 @@ def generate_scenario_toml(
     include_green: bool,
     buyer_counts: Dict[str, int],
     num_sellers: int,
+    seller_types: List[str],
     model_type: str,
     model_name: str,
     tmux_session: str,
@@ -310,8 +311,19 @@ def generate_scenario_toml(
     # Add seller agents
     seller_folder = AGENTS_DIR / "seller"
     
-    # Find all seller_*.toml files
-    seller_files = sorted(seller_folder.glob("seller_*.toml"))
+    # Determine which seller files to use
+    if seller_types:
+        # Use specified seller types
+        seller_files = []
+        for seller_type in seller_types:
+            seller_file = seller_folder / f"seller_{seller_type}.toml"
+            if seller_file.exists():
+                seller_files.append(seller_file)
+            else:
+                print(f"Warning: Seller file not found: {seller_file}, skipping...")
+    else:
+        # Find all seller_*.toml files
+        seller_files = sorted(seller_folder.glob("seller_*.toml"))
     
     if seller_files:
         port_offset = 0
@@ -524,8 +536,17 @@ Examples:
   # Start specific number of buyers
   uv run tools/start_agents.py --only-buyers --num-buyers 50
   
-  # Start with custom model
-  uv run tools/start_agents.py --only-white-agents --model-type openai --model-name gpt-4-turbo
+  # Test Strategic Optimizer vs baselines (3 sellers, one of each type)
+  uv run tools/start_agents.py --num-buyers 10 --num-sellers 3
+  
+  # Test only the Strategic Optimizer (dynamic_optimizer)
+  uv run tools/start_agents.py --num-buyers 10 --num-sellers 1 --sellers dynamic_optimizer
+  
+  # Test Strategic Optimizer vs Budget King only
+  uv run tools/start_agents.py --num-buyers 10 --num-sellers 2 --sellers dynamic_optimizer budget_king
+  
+  # Start with custom model (e.g., GPT-4o for better performance)
+  uv run tools/start_agents.py --num-sellers 3 --model-name gpt-4o
   
   # Attach to running session
   tmux attach -t agentbeats-marketplace
@@ -572,6 +593,14 @@ Examples:
         type=int,
         default=1,
         help="Number of seller agents to start (default: 1)"
+    )
+    
+    parser.add_argument(
+        "--sellers",
+        type=str,
+        nargs='+',
+        default=None,
+        help="Specific seller types to use (e.g., --sellers dynamic_optimizer budget_king). If not specified, distributes across all seller types."
     )
     
     parser.add_argument(
@@ -646,9 +675,14 @@ Examples:
     
     # Seller configuration
     num_sellers = args.num_sellers if start_sellers else 0
+    seller_types = args.sellers if start_sellers else None
     if num_sellers > 0:
         print(f"\nSeller Configuration:")
         print(f"  Total sellers: {num_sellers}")
+        if seller_types:
+            print(f"  Seller types: {', '.join(seller_types)}")
+        else:
+            print(f"  Seller types: all available (distributed evenly)")
     
     # Green agent configuration
     if start_green:
@@ -660,6 +694,7 @@ Examples:
         include_green=start_green,
         buyer_counts=buyer_counts,
         num_sellers=num_sellers,
+        seller_types=seller_types,
         model_type=model_type,
         model_name=model_name,
         tmux_session=args.tmux_session,

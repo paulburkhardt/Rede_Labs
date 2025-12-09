@@ -1,38 +1,41 @@
-name = "Dynamic Optimizer"
+name = "Strategic Optimizer"
 
 description = '''
-The Dynamic Optimizer uses market analysis and sales data to continuously optimize strategy.
+You are a seller in a competitive marketplace. MAXIMIZE PROFIT, not sales volume.
 
-STRATEGY:
-- Starts at mid-market pricing
-- Analyzes competitor behavior and adjusts accordingly
-- A/B tests different messaging approaches
-- Responds to sales velocity and market conditions
-- Adaptive approach targets all buyer segments
+## CRITICAL RULES (NEVER VIOLATE):
 
-PRICING APPROACH:
-- Base Price: $34.99
-- Market Position: Dynamic (adapts to market gaps)
-- Price Range: $24.99 - $49.99
-- Price Elasticity: Medium-High (data-driven adjustments)
+1. NEVER price below your wholesale cost:
+   - budget variant costs $8 (800 cents) → minimum price 900 cents
+   - mid_tier variant costs $12 (1200 cents) → minimum price 1300 cents  
+   - premium variant costs $15 (1500 cents) → minimum price 1600 cents
 
-DECISION LOGIC:
-- Zero Sales + Expensive → Drop price to competitive range
-- Zero Sales + Cheapest → Raise price + improve messaging (quality perception)
-- Low Sales → Add social proof, minor price optimization
-- Good Sales → Increase price to maximize profit
+2. USE PREMIUM VARIANT (towel_variant="premium") - it has the best specs and justifies high prices.
 
-MESSAGING STYLE:
-- Professional and balanced
-- Adapts based on performance data
-- Uses A/B testing for descriptions
-- Incorporates social proof when available
-- Flexible tone based on market position
+3. PRICE IN CENTS: The API uses cents. $49.99 = 4999 cents. Always convert dollars to cents.
 
-TARGET BUYERS:
-- All buyer personas (adaptive approach)
-- Primary: Confused by Overchoice (clear, balanced messaging)
-- Secondary: Price-Conscious and Quality Seekers (middle ground)
+4. PRICE FOR PROFIT: Start at 4999-5499 cents for premium. A single sale at 5000 cents ($50) with $35 profit beats ten sales at 1000 cents ($10) with $0 profit.
+
+## YOUR STRATEGY:
+
+DAY 0 (Product Creation):
+- Create ONE premium product using create_product()
+- Price: 4999 (that's $49.99)
+- towel_variant: "premium"
+- Use get_images_by_product_number("03") for premium images
+- Write a compelling luxury description emphasizing quality
+
+SUBSEQUENT DAYS (Adaptation):
+- Call get_market_analysis() first to see competitor prices and your sales
+- If you have sales → RAISE price by 500-1000 cents (you have pricing power)
+- If zero sales AND competitors are much cheaper → drop to 3999 cents ($39.99)
+- Never go below 3500 cents ($35) for premium
+
+## WHY THIS WORKS:
+Budget sellers profit ~$7 per sale at $15.
+You profit ~$35 per sale at $50.
+You need 1 sale for every 5 of theirs to match profit.
+Quality-seeking buyers will pay premium prices.
 '''
 url = "http://localhost:9999"
 host = "0.0.0.0"
@@ -48,66 +51,75 @@ streaming = true
 [[skills]]
 id = "create_product"
 name = "Create Product"
-description = "Create premium product listings with sophisticated descriptions and luxury positioning. REQUIRED: Must include at least one product image - products cannot be created without images. Use get_available_images to select images."
-tags = ["product", "creation", "optimization"]
+description = "Create a product listing with name, description, price, images, and towel variant. Choose variant (budget/mid_tier/premium) based on your pricing strategy. Images must match variant category (01/02/03)."
+tags = ["product", "creation"]
 examples = [
-    "Create a product with optimized pricing and messaging",
-    "List a product with balanced value proposition",
-    "Add product with data-driven positioning"
+    "Create a product with strategic pricing",
+    "List a new product in the marketplace"
 ]
 
 [[skills]]
 id = "update_product"
 name = "Update Product"
-description = "Dynamically update products based on sales performance and market analysis"
-tags = ["product", "update", "optimization"]
+description = "Update product price or description based on market analysis and sales performance."
+tags = ["product", "update"]
 examples = [
-    "Adjust price based on sales velocity",
-    "Update messaging to improve conversion",
-    "Optimize product based on performance data"
+    "Adjust price based on market conditions",
+    "Update description to improve appeal"
+]
+
+[[skills]]
+id = "get_market_analysis"
+name = "Get Market Analysis"
+description = "Analyze market: get competitor prices, your sales stats, and market position. Essential for informed pricing decisions."
+tags = ["analysis", "strategy"]
+examples = [
+    "Analyze market before pricing decision",
+    "Check competitor prices and my performance"
 ]
 
 [[skills]]
 id = "search_products"
 name = "Search Products"
-description = "Continuously analyze marketplace to identify pricing gaps and optimization opportunities"
-tags = ["search", "analysis", "optimization"]
+description = "Search marketplace for products"
+tags = ["search"]
 examples = [
-    "Analyze competitor pricing to find market gaps",
-    "Search for products to benchmark against",
-    "Identify optimization opportunities in marketplace"
+    "Find products in marketplace"
 ]
 
 [[skills]]
 id = "get_sales_stats"
 name = "Get Sales Stats"
-description = "Monitor sales metrics to drive pricing and messaging optimization decisions"
-tags = ["analytics", "sales", "optimization"]
+description = "Get your sales statistics"
+tags = ["analytics"]
 examples = [
-    "Check sales velocity to inform pricing decisions",
-    "Analyze performance data for optimization",
-    "Review metrics to adjust strategy"
+    "Check my sales"
 ]
 
 [[skills]]
 id = "get_product_details"
 name = "Get Product Details"
-description = "Examine specific products to inform competitive positioning and optimization strategy"
-tags = ["product", "details", "analysis"]
+description = "Get details of a specific product"
+tags = ["product"]
 examples = [
-    "Analyze competitor product to optimize positioning",
-    "Compare product details for strategic insights",
-    "Examine successful products to learn from"
+    "View product details"
 ]
 
 [[skills]]
 id = "get_available_images"
 name = "Get Available Images"
-description = "Select and test different product images to optimize visual appeal and conversion"
-tags = ["images", "product", "optimization"]
+description = "Get available product images by category"
+tags = ["images"]
 examples = [
-    "Choose images for A/B testing",
-    "Select optimal product photography",
-    "Test different image combinations"
+    "Get product images"
+]
+
+[[skills]]
+id = "get_images_by_product_number"
+name = "Get Images by Product Number"
+description = "Get images for specific category (01=budget, 02=mid_tier, 03=premium)"
+tags = ["images"]
+examples = [
+    "Get images for my product variant"
 ]
 
