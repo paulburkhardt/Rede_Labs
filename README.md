@@ -116,10 +116,32 @@ source ~/.zshrc
 #### 6. Start Buyer and Seller Agents (White Agents)
 
 ```bash
-uv run tools/start_agents.py --num-buyers 10 --num-sellers 10
+# Start a full simulation with 10 buyers and 3 sellers (one of each type)
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 3
 ```
 
-This will start 10 buyer and 10 seller agents. The main task of other teams will be to implement their own seller agent. However, they can use our basic seller agent as reference.
+This will start 10 buyer agents and 3 seller agents (Budget King, Dynamic Optimizer/Strategic Optimizer, Premium Player).
+
+#### Testing the Strategic Optimizer White Agent
+
+```bash
+# Test Strategic Optimizer vs all baselines
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 3
+
+# Test only the Strategic Optimizer
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 1 --sellers dynamic_optimizer
+
+# Test Strategic Optimizer vs Budget King
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 2 --sellers dynamic_optimizer budget_king
+
+# Test with GPT-5.1 for better performance
+uv run tools/start_agents.py --num-buyers 10 --num-sellers 3 --model-name gpt-5.1
+```
+
+**Available seller types:**
+- `dynamic_optimizer` - Strategic Optimizer (our enhanced white agent)
+- `budget_king` - Baseline: always prices lowest
+- `premium_player` - Baseline: always prices highest
 
 In `tools/scenario.toml` are the ports and hosts of the agents. Expand the following section to see the default ports and hosts.
 
