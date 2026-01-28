@@ -9,13 +9,34 @@
 total_customers = 10000
 
 # Customer persona distribution (must sum to 100%)
-# Based on CSI (Consumer Style Inventory) research distributions
+# Based on CSI (Consumer Style Inventory - Sproles & Kendall, 1986) research
+# Extended with modern digital-era consumer types
 [persona_distribution]
-price_conscious = 22.0      # Price-Conscious Value Hunters
-quality_seeker = 18.0        # Perfectionist Quality Seekers
-confused_overchoice = 25.0   # Confused by Overchoice
-hedonistic_shopper = 20.0    # Recreational Hedonistic Shoppers
-brand_conscious = 15.0       # Brand Conscious Price Perceivers
+# Core 8 CSI Dimensions
+perfectionist_quality = 12.0        # Perfectionist/High-Quality Consciousness
+price_bargain_hunter = 15.0         # Price-Value Consciousness  
+brand_prestige_seeker = 9.0         # Brand Consciousness
+fashion_trendsetter = 8.0           # Novelty-Fashion Consciousness
+hedonistic_experiencer = 11.0       # Recreational/Hedonistic Shopping
+impulsive_spontaneous = 10.0        # Impulsiveness
+confused_overwhelmed = 16.0         # Confusion from Overchoice
+habitual_brand_loyal = 9.0          # Brand Loyalty/Habitual Behavior
+
+# Modern Extended Dimensions (Digital Era)
+ethical_sustainable = 6.0           # Ethical/Sustainable Consciousness
+social_proof_validator = 4.0        # Social Validation Consciousness
 
 # Validation: percentages should sum to 100%
-# Current sum: 22 + 18 + 25 + 20 + 15 = 100%
+# Current sum: 12 + 15 + 9 + 8 + 11 + 10 + 16 + 9 + 6 + 4 = 100%
+
+# Distribution Rationale:
+# - Confused Overwhelmed (16%): Highest due to modern choice overload
+# - Price Bargain Hunter (15%): Large segment, especially in commoditized markets
+# - Perfectionist Quality (12%): Significant quality-focused segment
+# - Hedonistic Experiencer (11%): Growing experiential consumer segment
+# - Impulsive Spontaneous (10%): Common in online shopping environments
+# - Brand Prestige Seeker (9%): Premium/luxury segment
+# - Habitual Brand Loyal (9%): Established routine shoppers
+# - Fashion Trendsetter (8%): Early adopters and innovation seekers
+# - Ethical Sustainable (6%): Growing but still niche segment
+# - Social Proof Validator (4%): Heavy social media/review dependence
